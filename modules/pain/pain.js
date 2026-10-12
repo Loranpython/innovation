@@ -18,6 +18,7 @@ import { createScreen, el } from "../../js/ui.js";
 import { createBodyMap } from "./body-map.js";
 import { toPatientRegion, regionName } from "./body-regions.js";
 import { faceSvg } from "./pain-faces.js";
+import { SENSATIONS } from "./sensation-icons.js";
 
 const ZOOM_MIN = 1;
 const ZOOM_MAX = 2;
@@ -57,6 +58,7 @@ export function render(container, ctx) {
   const state = {
     level: null,       // 0–10, null = not chosen yet (the patient must choose)
     points: [],        // [{ view, drawId, region (patient id), x, y }]
+    sensations: [],    // sensation ids, in the order chosen
     focus: null,       // close-up: { view, drawId } — null = whole body
     zoom: 1,
   };
@@ -271,13 +273,50 @@ export function render(container, ctx) {
     thumb.style.gridColumn = String((level ?? 0) + 1);
   }
 
+  // ---------------------------------------------------------------- sensations
+  const sensationButtons = SENSATIONS.map(({ id, icon }) => {
+    const label = t(`pain.sensation.${id}`);
+    const button = el("button", {
+      type: "button",
+      class: "pain-sensation",
+      "aria-label": label,
+      "data-sensation": id,
+      onClick: () => toggleSensation(id),
+    });
+    button.innerHTML = icon();
+    button.append(
+      el("span", { class: "pain-sensation-label" }, [label]),
+      el("span", { class: "pain-sensation-check", "aria-hidden": "true" }),
+    );
+    return button;
+  });
+
+  const sensationSection = el("section", { class: "pain-box pain-sensations" }, [
+    el("h2", { class: "pain-heading" }, [t("pain.sensationHeading")]),
+    el("div", { class: "pain-sensations-grid" }, sensationButtons),
+  ]);
+
+  function toggleSensation(id) {
+    state.sensations = state.sensations.includes(id)
+      ? state.sensations.filter((s) => s !== id)
+      : [...state.sensations, id];
+    renderSensations();
+    changed();
+  }
+
+  function renderSensations() {
+    for (const button of sensationButtons) {
+      button.setAttribute("aria-pressed", String(state.sensations.includes(button.dataset.sensation)));
+    }
+  }
+
   // ---------------------------------------------------------------- updates
   /** Called after every change of the answers. */
   function changed() {}
 
   // ---------------------------------------------------------------- layout
   const { root, body } = createScreen(ctx, { title: t("pain.title"), className: "pain" });
-  const side = el("div", { class: "pain-side" }, [levelSection]);
+  const side = el("div", { class: "pain-side" }, [levelSection, sensationSection]);
   body.append(el("div", { class: "pain-main" }, [bodyPanel, side]));
 
   // Hide until pain.css is loaded, so the screen does not flash unstyled.
@@ -288,5 +327,6 @@ export function render(container, ctx) {
 
   renderBody();
   renderLevel();
+  renderSensations();
   container.append(root);
 }
