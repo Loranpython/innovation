@@ -1,0 +1,279 @@
+/*
+  base.css — shared styles for the whole patient screen (and nurse.html).
+
+  Contents:
+    1. Colour + size variables  (change the look of the app here)
+    2. Reset                    (sharp corners everywhere, no shadows)
+    3. App layout               (header + main area)
+    4. Shared components        (screen toolbar, back button, square tiles)
+
+  Design rules (please keep them when you add things):
+    - border-radius: 0 everywhere, no shadows, no gradients
+    - Arial / Helvetica, bold only for labels and titles
+    - every touch target is at least 64px
+*/
+
+/* ---------- 1. Variables ---------- */
+:root {
+  /* Base colours */
+  --color-bg: #f5f3ee;          /* off-white page background */
+  --color-surface: #ffffff;     /* panels, cards */
+  --color-text: #1b1b1b;        /* dark text */
+  --color-muted: #555555;       /* secondary text */
+  --color-border: #1b1b1b;      /* 2px solid borders */
+  --color-focus: #1849c9;       /* keyboard focus outline */
+  --color-disabled-bg: #dcdad4;
+  --color-disabled-text: #6a6a6a;
+  --color-header-bg: #1b1b1b;
+  --color-header-text: #ffffff;
+
+  /* One muted accent colour per tile */
+  --accent-toilet: #b8d0e3;     /* muted blue */
+  --accent-food: #ead9a8;       /* muted sand */
+  --accent-pain: #e8b9b0;       /* muted red */
+  --accent-speech: #c3d9bf;     /* muted green */
+  --accent-water: #bfdcea;      /* muted light blue */
+  --accent-send: #2f6b3a;       /* "send" buttons (white text on top) */
+
+  /* Sizes */
+  --header-h: 56px;             /* top bar with room + patient */
+  --toolbar-h: 72px;            /* row with the Back button on sub-screens */
+  --pad: 16px;                  /* outer padding of screens */
+  --gap: 16px;                  /* space between tiles */
+  --border: 2px solid var(--color-border);
+  --touch-min: 64px;
+
+  /* Viewport height: use the "dynamic" height on tablets when supported,
+     so the browser address bar does not cause scrolling. */
+  --vh: 100vh;
+}
+@supports (height: 100dvh) {
+  :root { --vh: 100dvh; }
+}
+
+/* ---------- 2. Reset ---------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  border-radius: 0 !important;   /* sharp squares only */
+  box-shadow: none !important;   /* no shadows */
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 18px;
+  line-height: 1.35;
+  -webkit-tap-highlight-color: transparent;
+}
+
+h1, h2, h3, p, ul { margin: 0; }
+
+button {
+  font: inherit;
+  color: inherit;
+  background: var(--color-surface);
+  border: var(--border);
+  min-height: var(--touch-min);
+  min-width: var(--touch-min);
+  padding: 0 16px;
+  cursor: pointer;
+  touch-action: manipulation;     /* no double-tap zoom delay */
+}
+
+button:disabled {
+  background: var(--color-disabled-bg);
+  color: var(--color-disabled-text);
+  border-style: dashed;           /* not only colour shows "disabled" */
+  cursor: not-allowed;
+}
+
+/* Visible focus outline for keyboard / switch users */
+:focus-visible {
+  outline: 4px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* Emoji used as icons: use the system colour-emoji fonts */
+.icon {
+  font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+  line-height: 1;
+  font-weight: normal;
+}
+
+/* ---------- 3. App layout ---------- */
+.app-header {
+  height: var(--header-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--pad);
+  background: var(--color-header-bg);
+  color: var(--color-header-text);
+  font-weight: bold;
+  font-size: 20px;
+}
+
+.app-main {
+  height: calc(var(--vh) - var(--header-h));
+  overflow: auto;                 /* small screens may scroll (never on home) */
+}
+
+/* ---------- 4. Shared components ---------- */
+
+/* A sub-screen: toolbar (Back + title) on top, content below */
+.screen {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  padding: var(--pad);
+  gap: var(--pad);
+}
+
+.screen-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--pad);
+  min-height: var(--toolbar-h);
+  flex: 0 0 auto;
+}
+
+.screen-title {
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.screen-body {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+
+/* Square "← Back" button */
+.back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: var(--toolbar-h);
+  padding: 0 20px;
+  font-weight: bold;
+  font-size: 20px;
+}
+.back-button .icon { font-size: 28px; font-family: Arial, Helvetica, sans-serif; }
+
+/*
+  Tile grid: square tiles that always fit on the screen.
+  Set --cols and --rows on the grid (see ui.js createTileGrid).
+  --tile = the size of one square tile = the largest size that still fits
+  both the width and the height of the screen.
+*/
+.tile-grid {
+  --cols: 2;
+  --rows: 2;
+  /* Height used by things around the grid (header + padding). */
+  --reserved-h: calc(var(--header-h) + 2 * var(--pad));
+  --tile: max(
+    var(--touch-min),
+    min(
+      calc((100vw - 2 * var(--pad) - (var(--cols) - 1) * var(--gap)) / var(--cols)),
+      calc((var(--vh) - var(--reserved-h) - (var(--rows) - 1) * var(--gap)) / var(--rows))
+    )
+  );
+  display: grid;
+  grid-template-columns: repeat(var(--cols), var(--tile));
+  grid-auto-rows: var(--tile);
+  gap: var(--gap);
+  justify-content: center;
+  align-content: center;
+}
+
+/* Grid layouts (see ui.js createTileGrid) */
+.tile-grid--2x2  { --cols: 2; --rows: 2; }
+.tile-grid--pair { --cols: 2; --rows: 1; }
+.tile-grid--many { --cols: 3; --rows: 2; }
+@media (orientation: portrait) {
+  .tile-grid--pair { --cols: 1; --rows: 2; }
+  .tile-grid--many { --cols: 2; --rows: 3; }
+}
+
+/* Inside a sub-screen the toolbar also takes height. */
+.screen .tile-grid {
+  --reserved-h: calc(var(--header-h) + var(--toolbar-h) + 3 * var(--pad));
+}
+
+/* Home screen: grid centred in the whole main area, no scrolling */
+.home {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--pad);
+  overflow: hidden;
+}
+
+/* One big square tile: large icon, short label underneath */
+.tile {
+  width: var(--tile);
+  height: var(--tile);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--tile) * 0.06);
+  background: var(--tile-accent, var(--color-surface));
+  border: var(--border);
+}
+.tile-icon {
+  font-size: calc(var(--tile) * 0.36);   /* ~35% of tile height */
+}
+.tile-label {
+  font-weight: bold;
+  font-size: clamp(14px, calc(var(--tile) * 0.075), 30px);
+  text-align: center;
+}
+.tile:active { outline: 4px solid var(--color-border); outline-offset: -8px; }
+
+/* Accent colours per tile type (set with data-accent="...") */
+.tile[data-accent="toilet"] { --tile-accent: var(--accent-toilet); }
+.tile[data-accent="food"]   { --tile-accent: var(--accent-food); }
+.tile[data-accent="pain"]   { --tile-accent: var(--accent-pain); }
+.tile[data-accent="speech"] { --tile-accent: var(--accent-speech); }
+.tile[data-accent="water"]  { --tile-accent: var(--accent-water); }
+
+/* Big primary action button (e.g. "Back to start", "Send") */
+.big-button {
+  min-height: 80px;
+  padding: 0 32px;
+  font-size: 24px;
+  font-weight: bold;
+}
+.big-button--send:not(:disabled) {
+  background: var(--accent-send);
+  color: #ffffff;
+}
+
+/* Confirmation screen */
+.sent {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: var(--pad);
+  text-align: center;
+}
+.sent-icons { display: flex; gap: 32px; font-size: min(22vh, 22vw); }
+.sent-message { font-size: clamp(24px, 4vw, 40px); font-weight: bold; }
+.sent-countdown { color: var(--color-muted); font-size: 20px; }
