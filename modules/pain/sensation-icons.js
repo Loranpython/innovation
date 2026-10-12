@@ -118,11 +118,9 @@ export function radiatingIcon() {
     <path d="M3 9 H45 M3 39 H45"/>
     <circle ${ACCENT_FILL} stroke="none" cx="9" cy="24" r="5"/>
     <g ${ACCENT_STROKE} stroke-dasharray="4 3" stroke-linecap="butt">
-      <path d="M16 24 H36 M16 21 L35 13 M16 27 L35 35"/>
+      <path d="M16 24 H35 M16 22 L30 16.5 M16 26 L30 31.5"/>
     </g>
-    <g ${ACCENT_STROKE}>
-      <path d="M38 19 L44 24 L38 29 M33 9.5 L39 12 L35 17 M33 38.5 L39 36 L35 31"/>
-    </g>`);
+    <path ${ACCENT_FILL} stroke="none" d="M44 24 L35 19 L35 29 Z M38 13 L32.5 20.5 L29 12 Z M38 35 L32.5 27.5 L29 36 Z"/>`);
 }
 
 /** The sensations, in the order they appear. Labels: "pain.sensation.<id>". */
