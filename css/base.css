@@ -221,13 +221,59 @@ button:disabled {
 
 /* Home screen: grid centred in the whole main area, no scrolling */
 .home {
+  --strip-h: 52px;              /* "Your requests" strip above the grid */
   height: 100%;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: var(--gap);
   padding: var(--pad);
   overflow: hidden;
 }
+.home.has-requests .tile-grid {
+  --reserved-h: calc(var(--header-h) + 2 * var(--pad) + var(--strip-h) + var(--gap));
+}
+
+/* "Your requests": one low row of chips, scrolls sideways if there are many */
+.request-strip {
+  display: none;
+  flex: 0 0 var(--strip-h);
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  gap: 8px;
+  justify-content: safe center;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.home.has-requests .request-strip { display: flex; }
+.request-chip {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: var(--strip-h);
+  padding: 0 14px;
+  background: var(--color-surface);
+  border: var(--border);
+  white-space: nowrap;
+  font-size: 17px;
+}
+.request-chip-icon { font-size: 26px; }
+.request-chip-time { color: var(--color-muted); font-variant-numeric: tabular-nums; }
+.request-chip[data-status="acknowledged"] {
+  background: var(--color-ok-bg);
+  border-color: var(--color-ok);
+  border-width: 3px;
+}
+.request-chip[data-status="acknowledged"] .request-chip-status {
+  color: var(--color-ok);
+  font-weight: bold;
+}
+.request-chip[data-status="resolved"] { border-style: dashed; }
+.request-chip[data-status="resolved"] .request-chip-status { font-weight: bold; }
 
 /* One big square tile: large icon, short label underneath */
 .tile {

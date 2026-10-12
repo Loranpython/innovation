@@ -144,6 +144,11 @@ export const STRINGS = {
     "sent.localMode": "⚠ Sent in offline demo mode: only visible on this device",
     "sent.localModeHint": "The nurse did NOT get this request. If you need help now, use the call button by your bed.",
 
+    "requests.label": "Your requests",
+    "requests.open": "Waiting for nurse…",
+    "requests.acknowledged": "✓ Your nurse has seen your request",
+    "requests.resolved": "✓ Done",
+
 
     // Nurse debug page
     "nurse.title": "Nurse view (debug)",
@@ -286,6 +291,11 @@ export const STRINGS = {
     "sent.localMode": "⚠ Verstuurd in offline demomodus: alleen zichtbaar op dit toestel",
     "sent.localModeHint": "De verpleegkundige heeft deze vraag NIET gekregen. Hebt u nu hulp nodig? Gebruik de belknop aan uw bed.",
 
+    "requests.label": "Uw vragen",
+    "requests.open": "Wacht op verpleegkundige…",
+    "requests.acknowledged": "✓ Uw verpleegkundige heeft uw vraag gezien",
+    "requests.resolved": "✓ Klaar",
+
 
     "nurse.title": "Verpleegkundige (debug)",
     "nurse.listening": "Wacht op meldingen van patiëntschermen in deze browser…",
@@ -426,6 +436,11 @@ export const STRINGS = {
     "sent.sending": "Sender…",
     "sent.localMode": "⚠ Sendt i frakoblet demomodus: bare synlig på denne enheten",
     "sent.localModeHint": "Sykepleieren har IKKE fått denne forespørselen. Trenger du hjelp nå? Bruk ringeknappen ved sengen.",
+
+    "requests.label": "Dine forespørsler",
+    "requests.open": "Venter på sykepleier…",
+    "requests.acknowledged": "✓ Sykepleieren har sett forespørselen din",
+    "requests.resolved": "✓ Ferdig",
 
 
     "nurse.title": "Sykepleiervisning (debug)",

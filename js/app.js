@@ -12,6 +12,8 @@ import { setLanguage, t } from "./strings.js";
 import { configureNotifications, sendNotification, getLastResult } from "./notifications.js";
 import { navigate, startRouter } from "./router.js";
 import { renderHeader } from "./ui.js";
+import { startRequestStatus } from "./request-status.js";
+import { unlockAudio } from "./sound.js";
 
 const params = new URLSearchParams(location.search);
 const patient = params.get("patient") || "Patient";
@@ -23,6 +25,14 @@ document.documentElement.lang = lang === "no" ? "nb" : lang;
 document.title = t("app.title");
 
 configureNotifications({ patient, room });
+
+// Live status of this device's requests ("Your nurse has seen your request").
+// One subscription for the whole app, so navigating never duplicates it.
+startRequestStatus({ room });
+
+// Browsers only allow sound after a tap; the patient's first tap unlocks it.
+window.addEventListener("pointerdown", unlockAudio, { once: true });
+window.addEventListener("keydown", unlockAudio, { once: true });
 
 const ctx = {
   patient,
