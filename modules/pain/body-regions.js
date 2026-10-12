@@ -104,6 +104,14 @@ export function regionName(regionId, t) {
 }
 
 /**
+ * ENGLISH label with the view, for the notification: "Right hand (front)".
+ * Always English so every nurse and every log reads the same text.
+ */
+export function englishRegionLabel(regionId, view) {
+  return `${STRINGS.en[`pain.region.${regionId}`] ?? regionId} (${view})`;
+}
+
+/**
  * Readable ENGLISH area for the notification, e.g. "Right thigh (back)".
  * Always English so every nurse and every log reads the same text.
  */

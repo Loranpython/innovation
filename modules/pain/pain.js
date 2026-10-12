@@ -1,30 +1,35 @@
 /*
   pain.js — screen #/pain: "Where does it hurt?"
 
-  The patient:
-    1. taps a body part (front or back) -> close-up -> taps the exact spot(s)
-    2. chooses a pain level 0–10 (faces or slider)        (required)
-    3. chooses what it feels like (sensation pictograms)   (optional)
-    4. presses "Review & send", checks, and sends it to the nurse
+  The patient places PAIN SPOTS. Each spot has its own level (required),
+  sensation types and optional places the pain spreads to.
 
-  State lives in `state` inside render(); every change calls a small
-  update function for the part of the screen that changed.
+    Tool-first: tap a feeling in the palette (it is "armed") -> tap a body
+                part -> tap the exact place in the close-up -> spot created.
+                Or drag a feeling onto the body (or onto a marker).
+    Body-first: tap a body part -> close-up -> tap -> empty spot -> editor.
+    Spreads to: in the editor (or the 9th palette tile), then tap places.
 
-  This module is self-contained: it loads its own pain.css and only uses
-  ctx + the shared helpers in js/ui.js.
+  This file only wires things together:
+    pain-state.js   state + changes + undo (one source of truth)
+    body-map.js     the SVG figures, markers and arrows
+    spot-editor.js  right panel (palette or spot editor)
+    summary-bar.js  bottom bar (spot chips, Undo, Start over, Review & send)
+    review.js       review + confirm overlays
+    drag.js         dragging feelings and moving markers
+
+  Every change in the store calls renderAll() once.
 */
 
 import { createScreen, el } from "../../js/ui.js";
-import { createBodyMap } from "./body-map.js";
-import { toPatientRegion, regionName, needsViewSuffix, englishArea } from "./body-regions.js";
-import { faceSvg, faceEmoji } from "./pain-faces.js";
-import { SENSATIONS } from "./sensation-icons.js";
-
-const ZOOM_MIN = 1;
-const ZOOM_MAX = 2;
-const ZOOM_STEP = 0.25;
-const FACE_VALUES = [0, 2, 4, 6, 8, 10];
-const LEVELS = Array.from({ length: 11 }, (_, i) => i);   // 0..10
+import { createPainStore, ZOOM_MIN, ZOOM_MAX, ZOOM_STEP } from "./pain-state.js";
+import { createBodyMap, fitMarkers, screenToSvg } from "./body-map.js";
+import { findRegion, toPatientRegion, regionName, englishRegionLabel } from "./body-regions.js";
+import { faceEmoji } from "./pain-faces.js";
+import { SENSATIONS, radiatingIcon } from "./sensation-icons.js";
+import { createSidePanel } from "./spot-editor.js";
+import { createSummaryBar } from "./summary-bar.js";
+import { createOverlay, openReview, openConfirm } from "./review.js";
 
 // Square toolbar icons (24 × 24, stroke-based like our pictograms).
 const TOOL_ICONS = {
@@ -50,55 +55,83 @@ function loadStyles() {
   return link;
 }
 
+let teardown = null;
+
 export function render(container, ctx) {
   const { t } = ctx;
   const stylesheet = loadStyles();
-
-  // ---------------------------------------------------------------- state
-  const state = {
-    level: null,       // 0–10, null = not chosen yet (the patient must choose)
-    points: [],        // [{ view, drawId, region (patient id), x, y }]
-    sensations: [],    // sensation ids, in the order chosen
-    focus: null,       // close-up: { view, drawId } — null = whole body
-    zoom: 1,
-  };
-
+  const store = createPainStore();
+  const { state } = store;
   const viewLabel = (view) => t(view === "front" ? "pain.viewFront" : "pain.viewBack");
+
+  // ---------------------------------------------------------------- taps on the body
+  /** A body part was tapped (whole view or close-up) at drawing point x, y. */
+  function regionTapped(view, drawId, x, y, inCloseup) {
+    if (state.mode === "radiating") {
+      const origin = store.selectedSpot();
+      if (!origin) store.setHint("pain.radiatePickOrigin");
+      else store.addRadiation(origin.id, { view, drawId, x, y });
+      return;
+    }
+    if (!inCloseup) {
+      store.openCloseup(view, drawId);           // an armed feeling stays armed
+      return;
+    }
+    store.addSpot({ view, drawId, x, y, sensations: state.armedSensation ? [state.armedSensation] : [] });
+  }
+
+  /** A spot marker was tapped. */
+  function markerTapped(spotId) {
+    const spot = store.getSpot(spotId);
+    if (state.mode === "radiating") {
+      const origin = store.selectedSpot();
+      if (!origin) { store.select(spotId); return; }          // this is where it starts
+      if (spot.id !== origin.id) {
+        store.addRadiation(origin.id, { view: spot.view, drawId: spot.drawId, x: spot.x, y: spot.y });
+      }
+      return;
+    }
+    store.select(spotId);
+  }
+
+  function wireSvg(svg, inCloseup) {
+    const view = svg.dataset.view;
+    if (inCloseup) {
+      // Pointer events: mouse, pen and touch. touch-action: none (pain.css).
+      svg.addEventListener("pointerdown", (event) => {
+        if (event.button !== 0 || event.target.closest(".pain-spot")) return;
+        const region = event.target.closest(".body-region");
+        if (!region) return;                         // tapped next to the body
+        event.preventDefault();
+        const { x, y } = screenToSvg(svg, event.clientX, event.clientY);
+        regionTapped(view, region.dataset.drawId, x, y, true);
+      });
+    }
+    svg.addEventListener("click", (event) => {
+      const marker = event.target.closest(".pain-spot");
+      if (marker) { markerTapped(marker.dataset.spotId); return; }
+      if (inCloseup) return;                         // handled on pointerdown
+      const region = event.target.closest(".body-region");
+      if (!region) return;
+      const { x, y } = screenToSvg(svg, event.clientX, event.clientY);
+      regionTapped(view, region.dataset.drawId, x, y, false);
+    });
+    // Keyboard: Enter/Space on a marker selects it; on a region it acts as
+    // a tap in the centre of the region's box.
+    svg.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      const marker = event.target.closest(".pain-spot");
+      const region = event.target.closest(".body-region");
+      if (!marker && !region) return;
+      event.preventDefault();
+      if (marker) { markerTapped(marker.dataset.spotId); return; }
+      const [bx, by, bw, bh] = findRegion(region.dataset.drawId).box;
+      regionTapped(view, region.dataset.drawId, bx + bw / 2, by + bh / 2, inCloseup);
+    });
+  }
 
   // ---------------------------------------------------------------- body panel
   const bodyPanel = el("section", { class: "pain-box pain-body" });
-
-  function openCloseup(view, drawId) {
-    state.focus = { view, drawId };
-    state.zoom = 1;
-    renderBody(`${view}:${drawId}`);
-  }
-
-  function closeCloseup() {
-    const { view, drawId } = state.focus;
-    state.focus = null;
-    renderBody(`${view}:${drawId}`);
-  }
-
-  function addPoint(drawId, x, y) {
-    const { view } = state.focus;
-    state.points.push({ view, drawId, region: toPatientRegion(drawId, view), x, y });
-    renderBody();
-    changed();
-  }
-
-  function undoPoint() {
-    // Remove the last point on the side (front/back) of the close-up.
-    const index = state.points.map((p) => p.view).lastIndexOf(state.focus.view);
-    if (index >= 0) state.points.splice(index, 1);
-    renderBody();
-    changed();
-  }
-
-  function setZoom(zoom) {
-    state.zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, zoom));
-    renderBody();
-  }
 
   function toolButton(name, label, onClick, disabled = false) {
     const button = el("button", {
@@ -114,400 +147,172 @@ export function render(container, ctx) {
     return button;
   }
 
-  /**
-   * Redraw the body panel. Keeps keyboard focus on the same element
-   * (data-focus-key), or on `focusKey` when given.
-   */
-  function renderBody(focusKey) {
-    const keepKey = focusKey ?? document.activeElement?.dataset?.focusKey;
-
-    if (state.focus) {
-      const { view, drawId } = state.focus;
-      const hasPointsOnSide = state.points.some((p) => p.view === view);
-      const map = createBodyMap({
-        view, points: state.points, focusDrawId: drawId, zoom: state.zoom, t, onPoint: addPoint,
-      });
-      bodyPanel.replaceChildren(
-        el("div", { class: "pain-closeup" }, [
-          el("div", { class: "pain-closeup-toolbar" }, [
-            toolButton("whole", t("pain.wholeBody"), closeCloseup),
-            el("div", { class: "pain-closeup-tools" }, [
-              toolButton("undo", t("pain.undo"), undoPoint, !hasPointsOnSide),
-              toolButton("zoomOut", t("pain.zoomOut"), () => setZoom(state.zoom - ZOOM_STEP), state.zoom <= ZOOM_MIN),
-              toolButton("zoomIn", t("pain.zoomIn"), () => setZoom(state.zoom + ZOOM_STEP), state.zoom >= ZOOM_MAX),
-              toolButton("done", t("pain.done"), closeCloseup),
-            ]),
-          ]),
-          el("div", { class: "pain-closeup-map" }, [map]),
-          el("p", { class: "pain-closeup-title" }, [
-            el("strong", {}, [regionName(toPatientRegion(drawId, view), t)]),
-            ` · ${viewLabel(view)} — ${t("pain.closeupHint")}`,
-          ]),
-        ])
-      );
-    } else {
-      bodyPanel.replaceChildren(
-        el("div", { class: "pain-views" }, ["front", "back"].map((view) =>
-          el("div", { class: "pain-view" }, [
-            el("h2", { class: "pain-view-label" }, [viewLabel(view)]),
-            el("div", { class: "pain-view-map" }, [
-              createBodyMap({
-                view, points: state.points, t, onRegion: (drawId) => openCloseup(view, drawId),
-              }),
-            ]),
-          ])
-        )),
-        el("p", { class: "pain-hint" }, [t("pain.bodyHint")]),
-      );
+  /** Instruction line above the figure: what to do now (armed / radiating / hint). */
+  function instructionLine() {
+    const origin = store.selectedSpot();
+    let iconHtml = "";
+    let text = "";
+    let button = null;
+    if (state.mode === "placing" && state.armedSensation) {
+      iconHtml = SENSATIONS.find((s) => s.id === state.armedSensation).icon();
+      text = t("pain.armedHint");
+      button = el("button", { type: "button", class: "pain-instruction-button", "data-focus-key": "instr:cancel",
+        "aria-label": t("pain.cancel"), onClick: () => store.cancelMode() }, [t("pain.cancel")]);
+    } else if (state.mode === "radiating") {
+      iconHtml = radiatingIcon();
+      text = t(origin ? "pain.radiateHint" : "pain.radiatePickOrigin");
+      button = origin
+        ? el("button", { type: "button", class: "pain-instruction-button is-primary", "data-focus-key": "instr:done",
+            "aria-label": t("pain.done"), onClick: () => store.cancelMode() }, [t("pain.done")])
+        : el("button", { type: "button", class: "pain-instruction-button", "data-focus-key": "instr:cancel",
+            "aria-label": t("pain.cancel"), onClick: () => store.cancelMode() }, [t("pain.cancel")]);
     }
+    if (state.hint) text = t(state.hint.key, state.hint.vars);
+    if (!text) return null;
 
-    // Give every region a focus key so focus survives a redraw.
-    for (const svg of bodyPanel.querySelectorAll(".body-svg")) {
-      const view = svg.classList.contains("body-svg--back") ? "back" : "front";
-      for (const region of svg.querySelectorAll(".body-region")) {
-        region.dataset.focusKey = `${view}:${region.dataset.drawId}`;
-      }
-    }
-    if (keepKey) bodyPanel.querySelector(`[data-focus-key="${keepKey}"]`)?.focus();
+    const icon = el("span", { class: "pain-instruction-icon", "aria-hidden": "true" });
+    icon.innerHTML = iconHtml;
+    return el("div", { class: `pain-instruction${state.hint ? " is-hint" : ""}` }, [
+      icon,
+      el("p", { class: "pain-instruction-text", role: "status" }, [text]),
+      button,
+    ]);
   }
 
-  // ---------------------------------------------------------------- pain level
-  const valueOutput = el("output", { class: "pain-value", "aria-live": "polite" });
-
-  const faceButtons = FACE_VALUES.map((value) => {
-    const button = el("button", {
-      type: "button",
-      class: "pain-face",
-      style: `--face-colour: var(--pain-scale-${value})`,
-      "aria-label": t("pain.levelAria", { n: value }),
-      onClick: () => setLevel(value),
-    });
-    button.innerHTML = faceSvg(value);
-    button.append(el("span", { class: "pain-face-number" }, [String(value)]));
-    return button;
-  });
-
-  // Slider: 11 square colour steps (no gradient) with a square thumb.
-  // Built as an ARIA slider so the thumb lines up exactly with the steps
-  // and the numbers below them.
-  const thumb = el("span", { class: "pain-scale-thumb", "aria-hidden": "true" });
-  const slider = el("div", {
-    class: "pain-scale",
-    role: "slider",
-    tabindex: "0",
-    "aria-label": t("pain.sliderAria"),
-    "aria-valuemin": "0",
-    "aria-valuemax": "10",
-  }, [
-    ...LEVELS.map((i) => el("span", {
-      class: "pain-scale-step",
-      style: `--step-colour: var(--pain-scale-${i}); grid-column: ${i + 1}`,
-    })),
-    thumb,
-  ]);
-
-  function levelFromPointer(event) {
-    const rect = slider.getBoundingClientRect();
-    const index = Math.floor(((event.clientX - rect.left) / rect.width) * LEVELS.length);
-    return Math.min(10, Math.max(0, index));
-  }
-  slider.addEventListener("pointerdown", (event) => {
-    slider.setPointerCapture(event.pointerId);
-    setLevel(levelFromPointer(event));        // touching it also sets a null level
-  });
-  slider.addEventListener("pointermove", (event) => {
-    if (slider.hasPointerCapture(event.pointerId)) setLevel(levelFromPointer(event));
-  });
-  slider.addEventListener("keydown", (event) => {
-    const current = state.level ?? 0;
-    const keys = {
-      ArrowRight: current + 1, ArrowUp: current + 1, ArrowLeft: current - 1, ArrowDown: current - 1,
-      PageUp: current + 2, PageDown: current - 2, Home: 0, End: 10,
+  function renderBody() {
+    const common = {
+      spots: state.spots,
+      selectedSpotId: state.selectedSpotId,
+      highlightMissing: state.highlightMissing,
+      t,
+      interactive: true,
     };
-    if (!(event.key in keys)) return;
-    event.preventDefault();
-    setLevel(state.level === null && event.key !== "Home" && event.key !== "End"
-      ? current : Math.min(10, Math.max(0, keys[event.key])));
-  });
-
-  const levelSection = el("section", { class: "pain-box pain-level" }, [
-    el("div", { class: "pain-level-head" }, [
-      el("h2", { class: "pain-heading" }, [t("pain.levelHeading")]),
-      valueOutput,
-    ]),
-    el("div", { class: "pain-faces" }, faceButtons),
-    slider,
-    el("div", { class: "pain-scale-numbers", "aria-hidden": "true" },
-      LEVELS.map((i) => el("span", {}, [String(i)]))),
-    el("div", { class: "pain-scale-labels" }, [
-      el("span", {}, [t("pain.noPain")]),
-      el("span", {}, [t("pain.worstPain")]),
-    ]),
-  ]);
-
-  function setLevel(value) {
-    state.level = value;
-    renderLevel();
-    changed();
-  }
-
-  function renderLevel() {
-    const { level } = state;
-    valueOutput.replaceChildren(
-      el("strong", {}, [level === null ? "—" : String(level)]),
-      el("span", {}, ["/10"]),
-    );
-    for (const [i, button] of faceButtons.entries()) {
-      const value = FACE_VALUES[i];
-      button.setAttribute("aria-pressed", String(level === value));
-      // The nearest face lights up while sliding (7 -> face 6 or 8).
-      button.classList.toggle("is-active", level !== null && Math.round(level / 2) * 2 === value);
-    }
-    slider.classList.toggle("is-unset", level === null);
-    slider.setAttribute("aria-valuenow", String(level ?? 0));
-    slider.setAttribute("aria-valuetext", level === null ? t("pain.levelNotSet") : `${level}/10`);
-    slider.querySelectorAll(".pain-scale-step").forEach((step, i) => {
-      step.classList.toggle("is-on", level !== null && i <= level);
-    });
-    thumb.hidden = level === null;
-    thumb.style.gridColumn = String((level ?? 0) + 1);
-  }
-
-  // ---------------------------------------------------------------- sensations
-  const sensationButtons = SENSATIONS.map(({ id, icon }) => {
-    const label = t(`pain.sensation.${id}`);
-    const button = el("button", {
-      type: "button",
-      class: "pain-sensation",
-      "aria-label": label,
-      "data-sensation": id,
-      onClick: () => toggleSensation(id),
-    });
-    button.innerHTML = icon();
-    button.append(
-      el("span", { class: "pain-sensation-label" }, [label]),
-      el("span", { class: "pain-sensation-check", "aria-hidden": "true" }),
-    );
-    return button;
-  });
-
-  const sensationSection = el("section", { class: "pain-box pain-sensations" }, [
-    el("h2", { class: "pain-heading" }, [t("pain.sensationHeading")]),
-    el("div", { class: "pain-sensations-grid" }, sensationButtons),
-  ]);
-
-  function toggleSensation(id) {
-    state.sensations = state.sensations.includes(id)
-      ? state.sensations.filter((s) => s !== id)
-      : [...state.sensations, id];
-    renderSensations();
-    changed();
-  }
-
-  function renderSensations() {
-    for (const button of sensationButtons) {
-      button.setAttribute("aria-pressed", String(state.sensations.includes(button.dataset.sensation)));
-    }
-  }
-
-  // ---------------------------------------------------------------- areas
-  /** Unique areas: one per (view, region), in the order first marked. */
-  function uniqueAreas() {
-    const seen = new Map();
-    for (const { view, region } of state.points) seen.set(`${view}:${region}`, { view, region });
-    return [...seen.values()];
-  }
-
-  /** Translated area name for the screen, e.g. "Right thigh (Back)". */
-  function areaLabel({ view, region }) {
-    const name = regionName(region, t);
-    return needsViewSuffix(region) ? `${name} (${viewLabel(view)})` : name;
-  }
-
-  // ---------------------------------------------------------------- summary bar
-  const summaryStats = el("p", { class: "pain-summary-stats", "aria-live": "polite" });
-  const startOverButton = el("button", {
-    type: "button",
-    class: "pain-start-over",
-    "aria-label": t("pain.startOver"),
-    onClick: () => openConfirm(),
-  }, [t("pain.startOver")]);
-  const reviewButton = el("button", {
-    type: "button",
-    class: "big-button big-button--send pain-review-button",
-    "aria-label": t("pain.reviewSend"),
-    onClick: () => openReview(),
-  }, [t("pain.reviewSend")]);
-
-  const summaryBar = el("div", { class: "pain-summary" }, [
-    summaryStats,
-    el("div", { class: "pain-summary-actions" }, [startOverButton, reviewButton]),
-  ]);
-
-  function renderSummary() {
-    const areaCount = uniqueAreas().length;
-    const sensationCount = state.sensations.length;
-    summaryStats.replaceChildren(
-      el("span", { class: "pain-stat" }, [
-        areaCount === 1 ? t("pain.summaryArea") : t("pain.summaryAreas", { n: areaCount }),
-      ]),
-      el("span", { class: "pain-stat" }, [
-        `${t("pain.summaryLevel")} `, el("strong", {}, [`${state.level ?? "—"}/10`]),
-      ]),
-      el("span", { class: "pain-stat" }, [
-        sensationCount === 1 ? t("pain.summarySensation") : t("pain.summarySensations", { n: sensationCount }),
-      ]),
-    );
-    // Location is optional: "pain 8/10, don't know where" is still useful.
-    reviewButton.disabled = state.level === null;
-    startOverButton.disabled = state.level === null && state.points.length === 0 && state.sensations.length === 0;
-  }
-
-  // ---------------------------------------------------------------- overlays
-  // A square dialog on top of the screen (not a new route).
-  let overlay = null;
-  let overlayOpener = null;
-
-  function openOverlay(className, children) {
-    closeOverlay();
-    overlayOpener = document.activeElement;
-    const dialog = el("div", { class: `pain-dialog ${className}`, role: "dialog", "aria-modal": "true" }, children);
-    overlay = el("div", { class: "pain-overlay" }, [dialog]);
-    overlay.addEventListener("keydown", (event) => {
-      if (event.key === "Escape") closeOverlay();
-    });
-    root.append(overlay);
-    dialog.querySelector("button")?.focus();
-    return dialog;
-  }
-
-  function closeOverlay() {
-    if (!overlay) return;
-    overlay.remove();
-    overlay = null;
-    overlayOpener?.focus?.();
-  }
-
-  function dialogButton(label, className, onClick) {
-    return el("button", { type: "button", class: className, "aria-label": label, onClick }, [label]);
-  }
-
-  function openConfirm() {
-    const title = el("h2", { class: "pain-dialog-title", id: "pain-confirm-title" }, [t("pain.confirmTitle")]);
-    const dialog = openOverlay("pain-dialog--confirm", [
-      title,
-      el("div", { class: "pain-dialog-actions" }, [
-        dialogButton(t("pain.cancel"), "big-button", closeOverlay),
-        dialogButton(t("pain.clear"), "big-button pain-danger", () => {
-          closeOverlay();
-          resetAll();
-        }),
-      ]),
-    ]);
-    dialog.setAttribute("aria-labelledby", "pain-confirm-title");
-  }
-
-  function resetAll() {
-    state.level = null;
-    state.points = [];
-    state.sensations = [];
-    state.focus = null;
-    state.zoom = 1;
-    renderBody();
-    renderLevel();
-    renderSensations();
-    changed();
-  }
-
-  function openReview(reviewView = "front") {
-    const { level } = state;
-    const areas = uniqueAreas();
-
-    const levelBlock = el("div", { class: "pain-review-level" }, [
-      el("span", { class: "pain-value" }, [el("strong", {}, [String(level)]), el("span", {}, ["/10"])]),
-    ]);
-    levelBlock.insertAdjacentHTML("beforeend", faceSvg(level));
-
-    const viewButtons = ["front", "back"].map((view) => el("button", {
-      type: "button",
-      class: "pain-review-view",
-      "aria-pressed": String(view === reviewView),
-      "aria-label": viewLabel(view),
-      onClick: () => openReview(view),
-    }, [viewLabel(view)]));
-
-    const sensations = SENSATIONS.filter(({ id }) => state.sensations.includes(id));
-    const sensationList = sensations.length
-      ? el("ul", { class: "pain-review-sensations" }, sensations.map(({ id, icon }) => {
-          const item = el("li", {});
-          item.innerHTML = icon();
-          item.append(el("span", {}, [t(`pain.sensation.${id}`)]));
-          return item;
-        }))
-      : el("p", { class: "pain-muted" }, [t("pain.noSensations")]);
-
-    const dialog = openOverlay("pain-dialog--review", [
-      el("h2", { class: "pain-dialog-title", id: "pain-review-title" }, [t("pain.reviewTitle")]),
-      el("div", { class: "pain-review-grid" }, [
-        el("div", { class: "pain-review-figure" }, [
-          el("div", { class: "pain-review-toggle", role: "group" }, viewButtons),
-          el("div", { class: "pain-review-map" }, [createBodyMap({ view: reviewView, points: state.points, t })]),
+    let content;
+    if (state.closeup) {
+      const { view, drawId } = state.closeup;
+      const map = createBodyMap({ ...common, view, closeup: { drawId, zoom: state.zoom } });
+      wireSvg(map, true);
+      content = el("div", { class: "pain-closeup" }, [
+        el("div", { class: "pain-closeup-toolbar" }, [
+          toolButton("whole", t("pain.wholeBody"), () => store.closeCloseup()),
+          el("div", { class: "pain-closeup-tools" }, [
+            toolButton("undo", t("pain.undo"), () => store.undo(), state.history.length === 0),
+            toolButton("zoomOut", t("pain.zoomOut"), () => store.setZoom(state.zoom - ZOOM_STEP), state.zoom <= ZOOM_MIN),
+            toolButton("zoomIn", t("pain.zoomIn"), () => store.setZoom(state.zoom + ZOOM_STEP), state.zoom >= ZOOM_MAX),
+            toolButton("done", t("pain.done"), () => store.closeCloseup()),
+          ]),
         ]),
-        el("div", { class: "pain-review-info" }, [
-          levelBlock,
-          el("h3", { class: "pain-review-heading" }, [t("pain.reviewAreas")]),
-          areas.length
-            ? el("ul", { class: "pain-review-areas" }, areas.map((area) => el("li", {}, [areaLabel(area)])))
-            : el("p", { class: "pain-muted" }, [t("pain.noAreas")]),
-          el("h3", { class: "pain-review-heading" }, [t("pain.reviewSensations")]),
-          sensationList,
+        el("div", { class: "pain-closeup-map" }, [map]),
+        el("p", { class: "pain-closeup-title" }, [
+          el("strong", {}, [regionName(toPatientRegion(drawId, view), t)]),
+          ` · ${viewLabel(view)} — ${t("pain.closeupHint")}`,
         ]),
-      ]),
-      el("div", { class: "pain-dialog-actions" }, [
-        dialogButton(t("pain.change"), "big-button", closeOverlay),
-        dialogButton(t("pain.sendToNurse"), "big-button big-button--send", send),
-      ]),
-    ]);
-    dialog.setAttribute("aria-labelledby", "pain-review-title");
-    // Keep focus on the front/back toggle when switching view.
-    if (overlayOpener?.classList?.contains("pain-review-view")) {
-      dialog.querySelector(`.pain-review-view[aria-pressed="true"]`)?.focus();
+      ]);
+    } else {
+      content = [
+        el("div", { class: "pain-views" }, ["front", "back"].map((view) => {
+          const map = createBodyMap({ ...common, view });
+          wireSvg(map, false);
+          return el("div", { class: "pain-view" }, [
+            el("h2", { class: "pain-view-label" }, [viewLabel(view)]),
+            el("div", { class: "pain-view-map" }, [map]),
+          ]);
+        })),
+        el("p", { class: "pain-hint" }, [t("pain.bodyHint")]),
+      ];
     }
+    bodyPanel.replaceChildren(...[instructionLine(), content].flat().filter(Boolean));
+    bodyPanel.classList.toggle("is-radiating", state.mode === "radiating");
+    bodyPanel.classList.toggle("is-placing", state.mode === "placing");
   }
+
+  // ---------------------------------------------------------------- panels
+  const { root, body } = createScreen(ctx, { title: t("pain.title"), className: "pain" });
+  const overlay = createOverlay(root);
+  const sidePanel = createSidePanel({ t, store, viewLabel });
+  const summaryBar = createSummaryBar({
+    t,
+    store,
+    onReview: () => openReview({ overlay, t, store, viewLabel, onSend: send }),
+    onStartOver: () => openConfirm({ overlay, t, onConfirm: () => store.reset() }),
+  });
 
   function send() {
-    const details = {
-      level: state.level,
-      // Readable, patient perspective, always English.
-      areas: uniqueAreas().map(({ view, region }) => englishArea(region, view)),
-      points: state.points.map(({ view, region, x, y }) => ({ view, region, x, y })),
-      sensations: [...state.sensations],
-    };
-    ctx.sendNotification({ type: "pain", details, icon: faceEmoji(state.level) });
+    const spots = state.spots.map((spot) => ({
+      number: spot.number,
+      view: spot.view,
+      region: spot.region,
+      regionLabel: englishRegionLabel(spot.region, spot.view),
+      x: spot.x,
+      y: spot.y,
+      level: spot.level,
+      sensations: [...spot.sensations],
+      radiatesTo: spot.radiatesTo.map(({ view, region, x, y }) => ({
+        view, region, regionLabel: englishRegionLabel(region, view), x, y,
+      })),
+    }));
+    const maxLevel = store.maxLevel();
+    ctx.sendNotification({ type: "pain", details: { maxLevel, spots }, icon: faceEmoji(maxLevel) });
     ctx.navigate("#/sent");
   }
 
-  // ---------------------------------------------------------------- updates
-  /** Called after every change of the answers. */
-  function changed() {
-    renderSummary();
-  }
+  // ---------------------------------------------------------------- render
+  body.append(el("div", { class: "pain-main" }, [bodyPanel, sidePanel.el]));
+  root.append(summaryBar.el);
 
-  // ---------------------------------------------------------------- layout
-  const { root, body } = createScreen(ctx, { title: t("pain.title"), className: "pain" });
-  const side = el("div", { class: "pain-side" }, [levelSection, sensationSection]);
-  body.append(el("div", { class: "pain-main" }, [bodyPanel, side]));
-  root.append(summaryBar);
+  let previousMode = state.mode;
+  function renderAll() {
+    const focusKey = document.activeElement?.dataset?.focusKey;
+    renderBody();
+    sidePanel.update(state);
+    summaryBar.update(state);
+    root.classList.toggle("has-selection", Boolean(state.selectedSpotId));
+    fitMarkers(bodyPanel);
+
+    // Keep keyboard focus on the same control after a redraw.
+    if (focusKey && !root.contains(document.activeElement)) {
+      root.querySelector(`[data-focus-key="${CSS.escape(focusKey)}"]`)?.focus();
+    }
+    // Narrow screens: after arming a feeling, bring the body into view.
+    if (state.mode !== previousMode && state.mode !== "idle" && isNarrow()) {
+      bodyPanel.scrollIntoView({ block: "start", behavior: "smooth" });
+    }
+    previousMode = state.mode;
+  }
+  store.subscribe(renderAll);
+
+  const isNarrow = () => window.matchMedia("(max-width: 700px), (orientation: portrait)").matches;
+
+  // Escape leaves "armed" / "spreads to" mode, or closes the spot editor.
+  root.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
+    if (state.mode !== "idle") store.cancelMode();
+    else if (state.selectedSpotId) store.select(null);
+  });
+
+  // Markers keep their screen size when the panel resizes.
+  const resizeObserver = new ResizeObserver(() => fitMarkers(bodyPanel));
+  resizeObserver.observe(bodyPanel);
 
   // Hide until pain.css is loaded, so the screen does not flash unstyled.
   if (!stylesheet.sheet) {
     root.style.visibility = "hidden";
-    stylesheet.addEventListener("load", () => { root.style.visibility = ""; }, { once: true });
+    stylesheet.addEventListener("load", () => {
+      root.style.visibility = "";
+      fitMarkers(bodyPanel);
+    }, { once: true });
   }
 
-  renderBody();
-  renderLevel();
-  renderSensations();
-  renderSummary();
   container.append(root);
+  renderAll();
+
+  teardown = () => {
+    resizeObserver.disconnect();
+    overlay.close();
+  };
+}
+
+export function cleanup() {
+  teardown?.();
+  teardown = null;
 }

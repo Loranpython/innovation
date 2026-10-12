@@ -38,16 +38,18 @@
   </main>
 
   <script type="module">
-    import { SENSATIONS } from "./sensation-icons.js";
+    import { SENSATIONS, radiatingIcon } from "./sensation-icons.js";
     import { setLanguage, t } from "../../js/strings.js";
 
     setLanguage(new URLSearchParams(location.search).get("lang") || "en");
     const sized = (html, px) => html.replace("<svg ", `<svg width="${px}" height="${px}" `);
 
     const tbody = document.querySelector("#table tbody");
-    for (const { id, icon } of SENSATIONS) {
+    // The 8 sensations + the "Spreads to…" tool (radiating pain).
+    const ALL = [...SENSATIONS, { id: "radiating", icon: radiatingIcon, labelKey: "pain.spreadsToButton" }];
+    for (const { id, icon, labelKey } of ALL) {
       const row = document.createElement("tr");
-      row.innerHTML = `<td>${t(`pain.sensation.${id}`)}<br><small>${id}</small></td>` +
+      row.innerHTML = `<td>${t(labelKey ?? `pain.sensation.${id}`)}<br><small>${id}</small></td>` +
         [40, 64, 128].map((px) => `<td>${sized(icon(), px)}</td>`).join("") +
         `<td class="preview-dark">${sized(icon(), 40)}</td>`;
       tbody.append(row);

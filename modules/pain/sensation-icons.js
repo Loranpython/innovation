@@ -109,6 +109,22 @@ export function numbIcon() {
     <path ${ACCENT_STROKE} d="M34 4 L44 14"/>`);
 }
 
+/**
+ * Spreads to… (radiating pain): a dot on a limb with dashed arrows fanning
+ * out along it. Not a sensation type; used for the "Spreads to" tool.
+ */
+export function radiatingIcon() {
+  return svg(`
+    <path d="M3 9 H45 M3 39 H45"/>
+    <circle ${ACCENT_FILL} stroke="none" cx="9" cy="24" r="5"/>
+    <g ${ACCENT_STROKE} stroke-dasharray="4 3" stroke-linecap="butt">
+      <path d="M16 24 H36 M16 21 L35 13 M16 27 L35 35"/>
+    </g>
+    <g ${ACCENT_STROKE}>
+      <path d="M38 19 L44 24 L38 29 M33 9.5 L39 12 L35 17 M33 38.5 L39 36 L35 31"/>
+    </g>`);
+}
+
 /** The sensations, in the order they appear. Labels: "pain.sensation.<id>". */
 export const SENSATIONS = [
   { id: "sharp", icon: sharpIcon },
