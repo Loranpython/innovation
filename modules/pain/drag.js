@@ -28,6 +28,23 @@ function suppressNextClick() {
 }
 
 /**
+ * Swallow the click that follows the release of this pointer.
+ * Used when a pointerdown already did the work (e.g. placing a spot): the
+ * screen changes under the finger, and the click must not hit whatever
+ * appeared there (like a face button in the new spot's editor).
+ */
+export function swallowClickAfterRelease(pointerId) {
+  const release = (event) => {
+    if (event.pointerId !== pointerId) return;
+    window.removeEventListener("pointerup", release, true);
+    window.removeEventListener("pointercancel", release, true);
+    suppressNextClick();
+  };
+  window.addEventListener("pointerup", release, true);
+  window.addEventListener("pointercancel", release, true);
+}
+
+/**
  * Follow one pointer from `startEvent` until it is released.
  * Handlers: onStart(e), onMove(e), onEnd(e) (only after a real drag), onCancel().
  */

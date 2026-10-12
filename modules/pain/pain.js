@@ -30,7 +30,7 @@ import { SENSATIONS, radiatingIcon } from "./sensation-icons.js";
 import { createSidePanel } from "./spot-editor.js";
 import { createSummaryBar } from "./summary-bar.js";
 import { createOverlay, openReview, openConfirm } from "./review.js";
-import { attachSensationDrag, startMarkerMove } from "./drag.js";
+import { attachSensationDrag, startMarkerMove, swallowClickAfterRelease } from "./drag.js";
 
 // Square toolbar icons (24 × 24, stroke-based like our pictograms).
 const TOOL_ICONS = {
@@ -124,8 +124,10 @@ export function render(container, ctx) {
         if (event.button !== 0) return;
         const marker = event.target.closest(".pain-spot");
         if (marker) {
-          // Only the selected marker can be moved; a tap selects (click).
-          if (marker.dataset.spotId === state.selectedSpotId && state.mode !== "radiating") {
+          // Drag a marker to move it (a short tap selects it, via click).
+          // Any marker can be moved, so on a phone the editor sheet does not
+          // have to be open (it would cover the body).
+          if (state.mode !== "radiating") {
             event.preventDefault();
             startMarkerMove(event, {
               marker, svg,
@@ -137,6 +139,7 @@ export function render(container, ctx) {
         const region = event.target.closest(".body-region");
         if (!region) return;                         // tapped next to the body
         event.preventDefault();
+        swallowClickAfterRelease(event.pointerId);   // the editor may appear under the finger
         const { x, y } = screenToSvg(svg, event.clientX, event.clientY);
         regionTapped(view, region.dataset.drawId, x, y, true);
       });
@@ -309,6 +312,7 @@ export function render(container, ctx) {
     sidePanel.update(state);
     summaryBar.update(state);
     root.classList.toggle("has-selection", Boolean(state.selectedSpotId));
+    root.classList.toggle("is-radiating", state.mode === "radiating");
     fitMarkers(bodyPanel);
 
     // Keep keyboard focus on the same control after a redraw.
@@ -332,9 +336,14 @@ export function render(container, ctx) {
     else if (state.selectedSpotId) store.select(null);
   });
 
-  // Markers keep their screen size when the panel resizes.
-  const resizeObserver = new ResizeObserver(() => fitMarkers(bodyPanel));
+  // Markers keep their screen size when the panel resizes. The summary bar
+  // height is shared with CSS, so the narrow-screen editor sheet sits above it.
+  const resizeObserver = new ResizeObserver(() => {
+    fitMarkers(bodyPanel);
+    root.style.setProperty("--pain-summary-height", `${summaryBar.el.offsetHeight}px`);
+  });
   resizeObserver.observe(bodyPanel);
+  resizeObserver.observe(summaryBar.el);
 
   // Hide until pain.css is loaded, so the screen does not flash unstyled.
   if (!stylesheet.sheet) {
