@@ -35,6 +35,14 @@
   --accent-water: #bfdcea;      /* muted light blue */
   --accent-send: #2f6b3a;       /* "send" buttons (white text on top) */
 
+  /* Status colours (request status, warnings) */
+  --color-ok: #2f6b3a;          /* "seen" / live: dark green */
+  --color-ok-bg: #d3e8cf;
+  --color-warning: #7a4f00;     /* offline demo mode, waiting long: amber */
+  --color-warning-bg: #f6dc9b;
+  --color-alert: #a8231b;       /* high pain, offline: red */
+  --color-alert-bg: #f4cfca;
+
   /* Sizes */
   --header-h: 56px;             /* top bar with room + patient */
   --toolbar-h: 72px;            /* row with the Back button on sub-screens */
@@ -277,3 +285,13 @@ button:disabled {
 .sent-icons { display: flex; gap: 32px; font-size: min(22vh, 22vw); }
 .sent-message { font-size: clamp(24px, 4vw, 40px); font-weight: bold; }
 .sent-countdown { color: var(--color-muted); font-size: 20px; }
+.sent-hint { font-size: clamp(18px, 2.4vw, 24px); max-width: 40em; }
+.sent--sending .sent-message { color: var(--color-muted); }
+/* Offline demo mode: must look clearly different from "notified" */
+.sent--local {
+  background: var(--color-warning-bg);
+  outline: 6px dashed var(--color-warning);
+  outline-offset: -6px;
+}
+.sent--local .sent-message { color: var(--color-warning); }
+.sent--local .sent-countdown { color: var(--color-text); }

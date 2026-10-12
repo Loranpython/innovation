@@ -140,6 +140,9 @@ export const STRINGS = {
     "sent.alreadySent": "Already sent, the nurse is on the way",
     "sent.backToStart": "Back to start",
     "sent.countdown": "Back to start in {s} s",
+    "sent.sending": "Sending…",
+    "sent.localMode": "⚠ Sent in offline demo mode: only visible on this device",
+    "sent.localModeHint": "The nurse did NOT get this request. If you need help now, use the call button by your bed.",
 
 
     // Nurse debug page
@@ -279,6 +282,9 @@ export const STRINGS = {
     "sent.alreadySent": "Al verstuurd, de verpleegkundige is onderweg",
     "sent.backToStart": "Terug naar start",
     "sent.countdown": "Terug naar start over {s} s",
+    "sent.sending": "Versturen…",
+    "sent.localMode": "⚠ Verstuurd in offline demomodus: alleen zichtbaar op dit toestel",
+    "sent.localModeHint": "De verpleegkundige heeft deze vraag NIET gekregen. Hebt u nu hulp nodig? Gebruik de belknop aan uw bed.",
 
 
     "nurse.title": "Verpleegkundige (debug)",
@@ -417,6 +423,9 @@ export const STRINGS = {
     "sent.alreadySent": "Allerede sendt, sykepleieren er på vei",
     "sent.backToStart": "Tilbake til start",
     "sent.countdown": "Tilbake til start om {s} s",
+    "sent.sending": "Sender…",
+    "sent.localMode": "⚠ Sendt i frakoblet demomodus: bare synlig på denne enheten",
+    "sent.localModeHint": "Sykepleieren har IKKE fått denne forespørselen. Trenger du hjelp nå? Bruk ringeknappen ved sengen.",
 
 
     "nurse.title": "Sykepleiervisning (debug)",

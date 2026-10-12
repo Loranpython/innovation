@@ -7,32 +7,35 @@
         details: object with type-specific data, e.g. { item: "water" }
         icon:    (optional) emoji shown on the confirmation screen; NOT sent
 
-  It builds this notification object:
-      { id, type, details, patient, room, timestamp (ISO), status: "open" }
-  and then:
-      1. logs it to the console
-      2. appends it to localStorage under "pcs_notifications"
-      3. broadcasts it on BroadcastChannel("pcs_notifications"), so nurse.html
-         open in another tab of the SAME browser receives it live (demo setup)
+  It returns a Promise of { ok, mode: "online" | "local", id }.
+  Screens do not have to await it: the confirmation screen (#/sent) does.
 
-  ┌──────────────────────────────────────────────────────────────────────┐
-  │ FUTURE BACKEND: later we replace steps 2 + 3 inside deliver() with a │
-  │ real backend call (e.g. Firebase, or fetch() to a small API).        │
-  │ Screens never talk to storage or the network themselves, so no       │
-  │ screen code has to change when we do that.                           │
-  └──────────────────────────────────────────────────────────────────────┘
+  How a request is delivered (one path, never both, so no duplicates):
+      ONLINE  js/config.js is filled in:
+              insert { patient, room, type, details } into Supabase via
+              js/backend.js. On failure: one retry after 1.5 s.
+              Success -> the id is remembered by js/request-status.js so
+              the Home screen can show "Your nurse has seen your request".
+      LOCAL   config.js is empty, OR both attempts failed:
+              localStorage ("pcs_notifications") + BroadcastChannel, so
+              nurse.html in the SAME browser still sees it (old demo setup).
+              The confirmation screen then shows a clear WARNING.
 
   Double-tap protection: the same request TYPE cannot be sent again within
-  10 seconds. sendNotification then returns { ok: false, duplicate: true }
-  and the confirmation screen says "Already sent, the nurse is on the way".
+  10 seconds. The promise then gives { ok: false, duplicate: true } and the
+  confirmation screen says "Already sent, the nurse is on the way".
 */
+
+import * as backend from "./backend.js";
+import { trackRequest } from "./request-status.js";
 
 export const STORAGE_KEY = "pcs_notifications";
 export const CHANNEL_NAME = "pcs_notifications";
 export const DUPLICATE_WINDOW_MS = 10_000;
+const RETRY_DELAY_MS = 1500;
 
 // Fallback icons for the confirmation screen when a screen gives none.
-const TYPE_ICONS = {
+export const TYPE_ICONS = {
   toilet: "🚻",
   drink: "💧",
   food: "🍽️",
@@ -42,7 +45,7 @@ const TYPE_ICONS = {
 
 let patientInfo = { patient: "Patient", room: "1" };
 let channel = null;                 // created on first use
-const lastSentAt = {};              // type -> time in ms of last successful send
+const lastSentAt = {};              // type -> time in ms of last send
 let lastResult = null;              // what the confirmation screen shows
 
 /** Called once by app.js with the patient + room from the URL. */
@@ -52,7 +55,9 @@ export function configureNotifications({ patient, room }) {
 
 /**
  * Send a notification to the nurse.
- * Returns { ok: true, notification, icon } or { ok: false, duplicate: true, icon }.
+ * Returns a Promise of { ok, mode: "online" | "local", id }
+ * (or { ok: false, duplicate: true } within 10 s of the same type).
+ * Never rejects.
  */
 export function sendNotification({ type, details = {}, icon }) {
   const now = Date.now();
@@ -61,32 +66,27 @@ export function sendNotification({ type, details = {}, icon }) {
   // Double-tap protection
   if (lastSentAt[type] && now - lastSentAt[type] < DUPLICATE_WINDOW_MS) {
     console.info(`[notifications] "${type}" already sent less than 10 s ago, ignored.`);
-    lastResult = { ok: false, duplicate: true, type, icon: shownIcon };
-    return lastResult;
+    const outcome = { ok: false, duplicate: true, mode: null, id: null };
+    lastResult = { ...outcome, type, icon: shownIcon, done: Promise.resolve(outcome) };
+    return lastResult.done;
   }
-
-  const notification = {
-    id: makeId(),
-    type,
-    details,
-    patient: patientInfo.patient,
-    room: patientInfo.room,
-    timestamp: new Date(now).toISOString(),
-    status: "open",
-  };
-
-  deliver(notification);
   lastSentAt[type] = now;
-  lastResult = { ok: true, notification, type, icon: shownIcon };
-  return lastResult;
+
+  const request = { patient: patientInfo.patient, room: patientInfo.room, type, details };
+  const done = deliver(request, shownIcon);
+  lastResult = { ok: null, duplicate: false, type, icon: shownIcon, done };
+  return done;
 }
 
-/** Result of the most recent sendNotification call (used by the "sent" screen). */
+/**
+ * The most recent send (used by the "sent" screen):
+ *   { duplicate, type, icon, done }   `done` = the Promise sendNotification returned
+ */
 export function getLastResult() {
   return lastResult;
 }
 
-/** Read all stored notifications (oldest first). Used by nurse.html. */
+/** Read all locally stored notifications (oldest first). Used by nurse.js in local mode. */
 export function readStoredNotifications() {
   try {
     const list = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
@@ -97,7 +97,22 @@ export function readStoredNotifications() {
   }
 }
 
-/** Remove all stored notifications. Used by nurse.html. */
+/** Change one locally stored notification and broadcast it. Used by nurse.js in local mode. */
+export function updateStoredNotification(id, changes) {
+  const list = readStoredNotifications();
+  const notification = list.find((n) => n.id === id);
+  if (!notification) throw new Error("Request not found");
+  Object.assign(notification, changes);
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+  } catch (error) {
+    console.warn("[notifications] could not save to localStorage", error);
+  }
+  broadcast(notification);
+  return notification;
+}
+
+/** Remove all locally stored notifications. */
 export function clearStoredNotifications() {
   try {
     localStorage.removeItem(STORAGE_KEY);
@@ -108,12 +123,36 @@ export function clearStoredNotifications() {
 
 // ---------------------------------------------------------------- internals
 
-/** Delivery = the part we will swap for a real backend later. */
-function deliver(notification) {
-  // 1. Console
-  console.log("[notifications] sent", notification);
+async function deliver(request, icon) {
+  if (backend.isConfigured()) {
+    for (let attempt = 1; attempt <= 2; attempt += 1) {
+      try {
+        const row = await backend.insertRequest(request);
+        console.log("[notifications] sent (online)", row);
+        trackRequest(row, icon);
+        return { ok: true, mode: "online", id: row.id };
+      } catch (error) {
+        console.warn(`[notifications] online send failed (attempt ${attempt})`, error);
+        if (attempt === 1) await wait(RETRY_DELAY_MS);
+      }
+    }
+    console.warn("[notifications] falling back to local demo mode");
+  }
+  const notification = deliverLocally(request);
+  return { ok: true, mode: "local", id: notification.id };
+}
 
-  // 2. localStorage (can fail: private mode, full storage, blocked cookies…)
+/** Old demo path: localStorage + BroadcastChannel (same browser only). */
+function deliverLocally(request) {
+  const notification = {
+    id: makeId(),
+    ...request,
+    timestamp: new Date().toISOString(),
+    status: "open",
+  };
+  console.log("[notifications] sent (local demo mode)", notification);
+
+  // localStorage (can fail: private mode, full storage, blocked cookies…)
   try {
     const list = readStoredNotifications();
     list.push(notification);
@@ -121,8 +160,12 @@ function deliver(notification) {
   } catch (error) {
     console.warn("[notifications] could not save to localStorage", error);
   }
+  broadcast(notification);
+  return notification;
+}
 
-  // 3. BroadcastChannel (live update for nurse.html in another tab)
+/** BroadcastChannel: live update for nurse.html in another tab of this browser. */
+function broadcast(notification) {
   try {
     if (!channel && "BroadcastChannel" in window) {
       channel = new BroadcastChannel(CHANNEL_NAME);
@@ -131,6 +174,10 @@ function deliver(notification) {
   } catch (error) {
     console.warn("[notifications] could not broadcast", error);
   }
+}
+
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /** Short unique id like "n-lx3k9a-4f2c". */
