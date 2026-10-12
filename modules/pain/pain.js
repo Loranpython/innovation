@@ -16,8 +16,8 @@
 
 import { createScreen, el } from "../../js/ui.js";
 import { createBodyMap } from "./body-map.js";
-import { toPatientRegion, regionName } from "./body-regions.js";
-import { faceSvg } from "./pain-faces.js";
+import { toPatientRegion, regionName, needsViewSuffix, englishArea } from "./body-regions.js";
+import { faceSvg, faceEmoji } from "./pain-faces.js";
 import { SENSATIONS } from "./sensation-icons.js";
 
 const ZOOM_MIN = 1;
@@ -310,14 +310,194 @@ export function render(container, ctx) {
     }
   }
 
+  // ---------------------------------------------------------------- areas
+  /** Unique areas: one per (view, region), in the order first marked. */
+  function uniqueAreas() {
+    const seen = new Map();
+    for (const { view, region } of state.points) seen.set(`${view}:${region}`, { view, region });
+    return [...seen.values()];
+  }
+
+  /** Translated area name for the screen, e.g. "Right thigh (Back)". */
+  function areaLabel({ view, region }) {
+    const name = regionName(region, t);
+    return needsViewSuffix(region) ? `${name} (${viewLabel(view)})` : name;
+  }
+
+  // ---------------------------------------------------------------- summary bar
+  const summaryStats = el("p", { class: "pain-summary-stats", "aria-live": "polite" });
+  const startOverButton = el("button", {
+    type: "button",
+    class: "pain-start-over",
+    "aria-label": t("pain.startOver"),
+    onClick: () => openConfirm(),
+  }, [t("pain.startOver")]);
+  const reviewButton = el("button", {
+    type: "button",
+    class: "big-button big-button--send pain-review-button",
+    "aria-label": t("pain.reviewSend"),
+    onClick: () => openReview(),
+  }, [t("pain.reviewSend")]);
+
+  const summaryBar = el("div", { class: "pain-summary" }, [
+    summaryStats,
+    el("div", { class: "pain-summary-actions" }, [startOverButton, reviewButton]),
+  ]);
+
+  function renderSummary() {
+    const areaCount = uniqueAreas().length;
+    const sensationCount = state.sensations.length;
+    summaryStats.replaceChildren(
+      el("span", { class: "pain-stat" }, [
+        areaCount === 1 ? t("pain.summaryArea") : t("pain.summaryAreas", { n: areaCount }),
+      ]),
+      el("span", { class: "pain-stat" }, [
+        `${t("pain.summaryLevel")} `, el("strong", {}, [`${state.level ?? "—"}/10`]),
+      ]),
+      el("span", { class: "pain-stat" }, [
+        sensationCount === 1 ? t("pain.summarySensation") : t("pain.summarySensations", { n: sensationCount }),
+      ]),
+    );
+    // Location is optional: "pain 8/10, don't know where" is still useful.
+    reviewButton.disabled = state.level === null;
+    startOverButton.disabled = state.level === null && state.points.length === 0 && state.sensations.length === 0;
+  }
+
+  // ---------------------------------------------------------------- overlays
+  // A square dialog on top of the screen (not a new route).
+  let overlay = null;
+  let overlayOpener = null;
+
+  function openOverlay(className, children) {
+    closeOverlay();
+    overlayOpener = document.activeElement;
+    const dialog = el("div", { class: `pain-dialog ${className}`, role: "dialog", "aria-modal": "true" }, children);
+    overlay = el("div", { class: "pain-overlay" }, [dialog]);
+    overlay.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") closeOverlay();
+    });
+    root.append(overlay);
+    dialog.querySelector("button")?.focus();
+    return dialog;
+  }
+
+  function closeOverlay() {
+    if (!overlay) return;
+    overlay.remove();
+    overlay = null;
+    overlayOpener?.focus?.();
+  }
+
+  function dialogButton(label, className, onClick) {
+    return el("button", { type: "button", class: className, "aria-label": label, onClick }, [label]);
+  }
+
+  function openConfirm() {
+    const title = el("h2", { class: "pain-dialog-title", id: "pain-confirm-title" }, [t("pain.confirmTitle")]);
+    const dialog = openOverlay("pain-dialog--confirm", [
+      title,
+      el("div", { class: "pain-dialog-actions" }, [
+        dialogButton(t("pain.cancel"), "big-button", closeOverlay),
+        dialogButton(t("pain.clear"), "big-button pain-danger", () => {
+          closeOverlay();
+          resetAll();
+        }),
+      ]),
+    ]);
+    dialog.setAttribute("aria-labelledby", "pain-confirm-title");
+  }
+
+  function resetAll() {
+    state.level = null;
+    state.points = [];
+    state.sensations = [];
+    state.focus = null;
+    state.zoom = 1;
+    renderBody();
+    renderLevel();
+    renderSensations();
+    changed();
+  }
+
+  function openReview(reviewView = "front") {
+    const { level } = state;
+    const areas = uniqueAreas();
+
+    const levelBlock = el("div", { class: "pain-review-level" }, [
+      el("span", { class: "pain-value" }, [el("strong", {}, [String(level)]), el("span", {}, ["/10"])]),
+    ]);
+    levelBlock.insertAdjacentHTML("beforeend", faceSvg(level));
+
+    const viewButtons = ["front", "back"].map((view) => el("button", {
+      type: "button",
+      class: "pain-review-view",
+      "aria-pressed": String(view === reviewView),
+      "aria-label": viewLabel(view),
+      onClick: () => openReview(view),
+    }, [viewLabel(view)]));
+
+    const sensations = SENSATIONS.filter(({ id }) => state.sensations.includes(id));
+    const sensationList = sensations.length
+      ? el("ul", { class: "pain-review-sensations" }, sensations.map(({ id, icon }) => {
+          const item = el("li", {});
+          item.innerHTML = icon();
+          item.append(el("span", {}, [t(`pain.sensation.${id}`)]));
+          return item;
+        }))
+      : el("p", { class: "pain-muted" }, [t("pain.noSensations")]);
+
+    const dialog = openOverlay("pain-dialog--review", [
+      el("h2", { class: "pain-dialog-title", id: "pain-review-title" }, [t("pain.reviewTitle")]),
+      el("div", { class: "pain-review-grid" }, [
+        el("div", { class: "pain-review-figure" }, [
+          el("div", { class: "pain-review-toggle", role: "group" }, viewButtons),
+          el("div", { class: "pain-review-map" }, [createBodyMap({ view: reviewView, points: state.points, t })]),
+        ]),
+        el("div", { class: "pain-review-info" }, [
+          levelBlock,
+          el("h3", { class: "pain-review-heading" }, [t("pain.reviewAreas")]),
+          areas.length
+            ? el("ul", { class: "pain-review-areas" }, areas.map((area) => el("li", {}, [areaLabel(area)])))
+            : el("p", { class: "pain-muted" }, [t("pain.noAreas")]),
+          el("h3", { class: "pain-review-heading" }, [t("pain.reviewSensations")]),
+          sensationList,
+        ]),
+      ]),
+      el("div", { class: "pain-dialog-actions" }, [
+        dialogButton(t("pain.change"), "big-button", closeOverlay),
+        dialogButton(t("pain.sendToNurse"), "big-button big-button--send", send),
+      ]),
+    ]);
+    dialog.setAttribute("aria-labelledby", "pain-review-title");
+    // Keep focus on the front/back toggle when switching view.
+    if (overlayOpener?.classList?.contains("pain-review-view")) {
+      dialog.querySelector(`.pain-review-view[aria-pressed="true"]`)?.focus();
+    }
+  }
+
+  function send() {
+    const details = {
+      level: state.level,
+      // Readable, patient perspective, always English.
+      areas: uniqueAreas().map(({ view, region }) => englishArea(region, view)),
+      points: state.points.map(({ view, region, x, y }) => ({ view, region, x, y })),
+      sensations: [...state.sensations],
+    };
+    ctx.sendNotification({ type: "pain", details, icon: faceEmoji(state.level) });
+    ctx.navigate("#/sent");
+  }
+
   // ---------------------------------------------------------------- updates
   /** Called after every change of the answers. */
-  function changed() {}
+  function changed() {
+    renderSummary();
+  }
 
   // ---------------------------------------------------------------- layout
   const { root, body } = createScreen(ctx, { title: t("pain.title"), className: "pain" });
   const side = el("div", { class: "pain-side" }, [levelSection, sensationSection]);
   body.append(el("div", { class: "pain-main" }, [bodyPanel, side]));
+  root.append(summaryBar);
 
   // Hide until pain.css is loaded, so the screen does not flash unstyled.
   if (!stylesheet.sheet) {
@@ -328,5 +508,6 @@ export function render(container, ctx) {
   renderBody();
   renderLevel();
   renderSensations();
+  renderSummary();
   container.append(root);
 }

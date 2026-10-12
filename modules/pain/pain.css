@@ -18,6 +18,7 @@
   --pain-body-fill: #e6e3dc;
   --pain-body-stroke: #8c8a84;
   --pain-closeup-bg: #ecebe6;
+  --pain-overlay-bg: rgba(27, 27, 27, 0.6);   /* dims the screen behind a dialog */
 
   /* 0–10 scale, green -> red, one solid colour per step */
   --pain-scale-0: #3a7d44;
@@ -58,7 +59,7 @@
   min-width: 0;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 470px;
+  grid-template-columns: minmax(0, 1fr) 450px;
   grid-template-rows: minmax(0, 1fr);
   gap: var(--pad);
 }
@@ -263,8 +264,8 @@
 }
 .pain-face {
   min-width: 56px;
-  min-height: 72px;
-  padding: 4px 0 0;
+  min-height: 64px;
+  padding: 2px 0 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -282,8 +283,8 @@
 .pain-face[aria-pressed="true"] .pain-face-number { text-decoration: underline; }
 .pain-face-number { font-weight: bold; font-size: 16px; }
 .face-art {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   fill: var(--color-surface);
   stroke: var(--color-text);
   stroke-width: 1.8;
@@ -300,8 +301,8 @@
   display: grid;
   grid-template-columns: repeat(11, minmax(0, 1fr));
   gap: 2px;
-  height: 48px;
-  padding: 8px 0;
+  height: 44px;
+  padding: 7px 0;
   cursor: pointer;
   touch-action: pan-y;          /* horizontal drags move the slider */
 }
@@ -315,7 +316,7 @@
 .pain-scale.is-unset .pain-scale-step { opacity: 0.55; }
 .pain-scale-thumb {
   grid-row: 1;
-  margin: -8px -2px;
+  margin: -7px -2px;
   border: 5px solid var(--color-text);
   background: transparent;
   pointer-events: none;
@@ -340,18 +341,23 @@
 .pain-sensations {
   flex: 1 1 auto;
   min-height: 0;
+  overflow: auto;                /* safety net on short screens */
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
+/* Landscape: two rows that fill the panel, at most square (98px + gap) */
 .pain-sensations-grid {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 212px;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 .pain-sensation {
   position: relative;
-  aspect-ratio: 1;
   min-height: 0;
   padding: 6px 4px;
   display: flex;
@@ -396,6 +402,136 @@
   transform: rotate(-45deg);
 }
 
+/* ---------- summary bar ---------- */
+.pain-summary {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pad);
+  padding: 8px 8px 8px 16px;
+  background: var(--color-surface);
+  border: var(--border);
+}
+.pain-summary-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 24px;
+  font-size: 18px;
+}
+.pain-stat strong { font-size: 22px; }
+.pain-summary-actions {
+  display: flex;
+  gap: 8px;
+}
+.pain-summary .big-button { min-height: 64px; }
+.pain-start-over { min-height: 64px; }
+
+/* ---------- overlays (confirm + review) ---------- */
+.pain-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--pad);
+  background: var(--pain-overlay-bg);
+}
+.pain-dialog {
+  max-width: 100%;
+  max-height: 100%;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pad);
+  padding: 20px 24px;
+  background: var(--color-bg);
+  border: var(--border);
+}
+.pain-dialog--confirm { width: 460px; }
+.pain-dialog--review { width: 920px; }
+.pain-dialog-title { font-size: 24px; font-weight: bold; }
+.pain-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pain-danger:not(:disabled) {
+  background: var(--color-text);
+  color: var(--color-surface);
+}
+.pain-muted { color: var(--color-muted); }
+
+.pain-review-grid {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: var(--pad);
+}
+.pain-review-figure {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pain-review-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.pain-review-view { min-height: 56px; }
+.pain-review-view + .pain-review-view { border-left: none; }
+.pain-review-view[aria-pressed="true"] {
+  background: var(--color-text);
+  color: var(--color-surface);
+  font-weight: bold;
+}
+.pain-review-map {
+  height: min(380px, calc(var(--vh) - 340px));
+  min-height: 220px;
+  background: var(--color-surface);
+  border: var(--border);
+  padding: 8px;
+}
+.pain-review-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pain-review-level {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.pain-review-level .pain-value strong { font-size: 56px; }
+.pain-review-level .pain-value span { font-size: 24px; }
+.pain-review-level .face-art { width: 72px; height: 72px; }
+.pain-review-heading {
+  margin: 8px 0 0;
+  font-size: 18px;
+  font-weight: bold;
+}
+.pain-review-areas {
+  padding-left: 20px;
+  font-size: 18px;
+}
+.pain-review-sensations {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pain-review-sensations li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px 4px 4px;
+  background: var(--color-surface);
+  border: var(--border);
+  font-weight: bold;
+}
+.pain-review-sensations .sensation-icon { width: 40px; height: 40px; }
+
 /* ---------- portrait / narrow: stack, page scrolls ---------- */
 @media (orientation: portrait), (max-width: 700px), (max-height: 560px) {
   .pain { height: auto; }
@@ -404,4 +540,36 @@
     grid-template-rows: auto;
   }
   .pain-body { height: max(420px, 62vh); }
+  .pain-summary {
+    position: sticky;                    /* send button always in reach */
+    bottom: 0;
+    z-index: 5;
+    flex-wrap: wrap;
+    margin: 0 calc(-1 * var(--pad)) calc(-1 * var(--pad));
+    padding: 8px var(--pad);
+  }
+  .pain-sensations-grid { flex: none; max-height: none; grid-template-rows: none; }
+  .pain-sensation { aspect-ratio: 1; }
+  .pain-review-grid { grid-template-columns: minmax(0, 1fr); }
+  .pain-review-map { height: 300px; }
+}
+
+/* Short landscape screens (e.g. 1366×768): slightly smaller pictograms */
+@media (max-height: 780px) and (min-height: 561px) and (orientation: landscape) {
+  .pain-sensation { gap: 3px; padding: 3px; }
+  .pain-sensation .sensation-icon { width: 40px; height: 40px; }
+  .pain-sensation-label { font-size: 13px; }
+}
+
+@media (max-width: 700px) {
+  .pain-faces { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .pain-sensations-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pain-sensation { aspect-ratio: auto; min-height: 112px; }
+  .pain-summary { gap: 6px; }
+  .pain-summary-stats { gap: 2px 16px; font-size: 16px; }
+  .pain-stat strong { font-size: 18px; }
+  .pain-summary-actions { width: 100%; }
+  .pain-summary-actions button { min-height: 56px; padding: 0 12px; white-space: nowrap; }
+  .pain-summary-actions .big-button { flex: 1 1 auto; font-size: 20px; }
+  .pain-dialog { padding: 16px; }
 }
