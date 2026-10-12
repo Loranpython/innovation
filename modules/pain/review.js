@@ -100,11 +100,10 @@ function spotItem(spot, t, viewLabel) {
   return item;
 }
 
-export function openReview({ overlay, t, store, viewLabel, onSend, reviewView = null }) {
+export function openReview({ overlay, t, store, viewLabel, onSend, reviewView = "front" }) {
   const { spots } = store.state;
   const worst = store.maxLevel();
-  // Start on the side where the worst spot is.
-  const view = reviewView ?? ([...spots].sort((a, b) => b.level - a.level)[0]?.view || "front");
+  const view = reviewView;
 
   const levelBlock = el("div", { class: "pain-review-level" }, [
     el("span", { class: "pain-review-worst" }, [t("pain.worstPainShort")]),
