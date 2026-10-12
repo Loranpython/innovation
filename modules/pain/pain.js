@@ -17,10 +17,13 @@
 import { createScreen, el } from "../../js/ui.js";
 import { createBodyMap } from "./body-map.js";
 import { toPatientRegion, regionName } from "./body-regions.js";
+import { faceSvg } from "./pain-faces.js";
 
 const ZOOM_MIN = 1;
 const ZOOM_MAX = 2;
 const ZOOM_STEP = 0.25;
+const FACE_VALUES = [0, 2, 4, 6, 8, 10];
+const LEVELS = Array.from({ length: 11 }, (_, i) => i);   // 0..10
 
 // Square toolbar icons (24 × 24, stroke-based like our pictograms).
 const TOOL_ICONS = {
@@ -52,6 +55,7 @@ export function render(container, ctx) {
 
   // ---------------------------------------------------------------- state
   const state = {
+    level: null,       // 0–10, null = not chosen yet (the patient must choose)
     points: [],        // [{ view, drawId, region (patient id), x, y }]
     focus: null,       // close-up: { view, drawId } — null = whole body
     zoom: 1,
@@ -165,13 +169,115 @@ export function render(container, ctx) {
     if (keepKey) bodyPanel.querySelector(`[data-focus-key="${keepKey}"]`)?.focus();
   }
 
+  // ---------------------------------------------------------------- pain level
+  const valueOutput = el("output", { class: "pain-value", "aria-live": "polite" });
+
+  const faceButtons = FACE_VALUES.map((value) => {
+    const button = el("button", {
+      type: "button",
+      class: "pain-face",
+      style: `--face-colour: var(--pain-scale-${value})`,
+      "aria-label": t("pain.levelAria", { n: value }),
+      onClick: () => setLevel(value),
+    });
+    button.innerHTML = faceSvg(value);
+    button.append(el("span", { class: "pain-face-number" }, [String(value)]));
+    return button;
+  });
+
+  // Slider: 11 square colour steps (no gradient) with a square thumb.
+  // Built as an ARIA slider so the thumb lines up exactly with the steps
+  // and the numbers below them.
+  const thumb = el("span", { class: "pain-scale-thumb", "aria-hidden": "true" });
+  const slider = el("div", {
+    class: "pain-scale",
+    role: "slider",
+    tabindex: "0",
+    "aria-label": t("pain.sliderAria"),
+    "aria-valuemin": "0",
+    "aria-valuemax": "10",
+  }, [
+    ...LEVELS.map((i) => el("span", {
+      class: "pain-scale-step",
+      style: `--step-colour: var(--pain-scale-${i}); grid-column: ${i + 1}`,
+    })),
+    thumb,
+  ]);
+
+  function levelFromPointer(event) {
+    const rect = slider.getBoundingClientRect();
+    const index = Math.floor(((event.clientX - rect.left) / rect.width) * LEVELS.length);
+    return Math.min(10, Math.max(0, index));
+  }
+  slider.addEventListener("pointerdown", (event) => {
+    slider.setPointerCapture(event.pointerId);
+    setLevel(levelFromPointer(event));        // touching it also sets a null level
+  });
+  slider.addEventListener("pointermove", (event) => {
+    if (slider.hasPointerCapture(event.pointerId)) setLevel(levelFromPointer(event));
+  });
+  slider.addEventListener("keydown", (event) => {
+    const current = state.level ?? 0;
+    const keys = {
+      ArrowRight: current + 1, ArrowUp: current + 1, ArrowLeft: current - 1, ArrowDown: current - 1,
+      PageUp: current + 2, PageDown: current - 2, Home: 0, End: 10,
+    };
+    if (!(event.key in keys)) return;
+    event.preventDefault();
+    setLevel(state.level === null && event.key !== "Home" && event.key !== "End"
+      ? current : Math.min(10, Math.max(0, keys[event.key])));
+  });
+
+  const levelSection = el("section", { class: "pain-box pain-level" }, [
+    el("div", { class: "pain-level-head" }, [
+      el("h2", { class: "pain-heading" }, [t("pain.levelHeading")]),
+      valueOutput,
+    ]),
+    el("div", { class: "pain-faces" }, faceButtons),
+    slider,
+    el("div", { class: "pain-scale-numbers", "aria-hidden": "true" },
+      LEVELS.map((i) => el("span", {}, [String(i)]))),
+    el("div", { class: "pain-scale-labels" }, [
+      el("span", {}, [t("pain.noPain")]),
+      el("span", {}, [t("pain.worstPain")]),
+    ]),
+  ]);
+
+  function setLevel(value) {
+    state.level = value;
+    renderLevel();
+    changed();
+  }
+
+  function renderLevel() {
+    const { level } = state;
+    valueOutput.replaceChildren(
+      el("strong", {}, [level === null ? "—" : String(level)]),
+      el("span", {}, ["/10"]),
+    );
+    for (const [i, button] of faceButtons.entries()) {
+      const value = FACE_VALUES[i];
+      button.setAttribute("aria-pressed", String(level === value));
+      // The nearest face lights up while sliding (7 -> face 6 or 8).
+      button.classList.toggle("is-active", level !== null && Math.round(level / 2) * 2 === value);
+    }
+    slider.classList.toggle("is-unset", level === null);
+    slider.setAttribute("aria-valuenow", String(level ?? 0));
+    slider.setAttribute("aria-valuetext", level === null ? t("pain.levelNotSet") : `${level}/10`);
+    slider.querySelectorAll(".pain-scale-step").forEach((step, i) => {
+      step.classList.toggle("is-on", level !== null && i <= level);
+    });
+    thumb.hidden = level === null;
+    thumb.style.gridColumn = String((level ?? 0) + 1);
+  }
+
   // ---------------------------------------------------------------- updates
   /** Called after every change of the answers. */
   function changed() {}
 
   // ---------------------------------------------------------------- layout
   const { root, body } = createScreen(ctx, { title: t("pain.title"), className: "pain" });
-  const side = el("div", { class: "pain-side" });
+  const side = el("div", { class: "pain-side" }, [levelSection]);
   body.append(el("div", { class: "pain-main" }, [bodyPanel, side]));
 
   // Hide until pain.css is loaded, so the screen does not flash unstyled.
@@ -181,5 +287,6 @@ export function render(container, ctx) {
   }
 
   renderBody();
+  renderLevel();
   container.append(root);
 }

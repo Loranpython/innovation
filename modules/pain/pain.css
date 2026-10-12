@@ -232,6 +232,110 @@
   text-align: center;
 }
 
+/* ---------- pain level ---------- */
+.pain-level {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pain-level-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.pain-value {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+  min-width: 96px;
+  justify-content: flex-end;
+}
+.pain-value strong { font-size: 36px; line-height: 1; }
+.pain-value span { font-size: 18px; color: var(--color-muted); }
+
+/* Six face buttons (0, 2, 4, 6, 8, 10) */
+.pain-faces {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 6px;
+}
+.pain-face {
+  min-width: 56px;
+  min-height: 72px;
+  padding: 4px 0 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border-bottom: 6px solid var(--face-colour);   /* scale colour as a strip */
+}
+.pain-face.is-active {
+  background: var(--pain-soft);
+  border-color: var(--color-text);
+  border-bottom-color: var(--face-colour);
+  outline: 2px solid var(--color-text);
+  outline-offset: -4px;
+}
+.pain-face[aria-pressed="true"] .pain-face-number { text-decoration: underline; }
+.pain-face-number { font-weight: bold; font-size: 16px; }
+.face-art {
+  width: 36px;
+  height: 36px;
+  fill: var(--color-surface);
+  stroke: var(--color-text);
+  stroke-width: 1.8;
+}
+.face-art .face-line {
+  fill: none;
+  stroke-linecap: square;
+}
+.face-art .face-tears { fill: var(--pain-scale-6); stroke: none; }
+
+/* Slider: 11 solid steps + square thumb on the chosen step */
+.pain-scale {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(11, minmax(0, 1fr));
+  gap: 2px;
+  height: 48px;
+  padding: 8px 0;
+  cursor: pointer;
+  touch-action: pan-y;          /* horizontal drags move the slider */
+}
+.pain-scale-step {
+  grid-row: 1;
+  background: var(--step-colour);
+  border: 2px solid var(--color-border);
+  opacity: 0.35;
+}
+.pain-scale-step.is-on { opacity: 1; }
+.pain-scale.is-unset .pain-scale-step { opacity: 0.55; }
+.pain-scale-thumb {
+  grid-row: 1;
+  margin: -8px -2px;
+  border: 5px solid var(--color-text);
+  background: transparent;
+  pointer-events: none;
+}
+.pain-scale:focus { outline: none; }
+.pain-scale:focus-visible { outline: 4px solid var(--color-focus); outline-offset: 4px; }
+.pain-scale-numbers {
+  display: grid;
+  grid-template-columns: repeat(11, minmax(0, 1fr));
+  gap: 2px;
+  text-align: center;
+  font-size: 14px;
+}
+.pain-scale-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
 /* ---------- portrait / narrow: stack, page scrolls ---------- */
 @media (orientation: portrait), (max-width: 700px), (max-height: 560px) {
   .pain { height: auto; }
