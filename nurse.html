@@ -40,6 +40,9 @@
     .nurse-icon { font-size: 32px; }
     .nurse-details { font-weight: bold; }
     .nurse-empty { color: var(--color-muted); padding: 12px 0; }
+    .nurse-pain-spots { margin: 4px 0 0; padding-left: 0; list-style: none; font-weight: normal; }
+    .nurse-pain-spots li { padding: 2px 6px; }
+    .nurse-pain .is-high { background: var(--accent-pain); font-weight: bold; }
     @media (max-width: 700px) {
       .nurse-item { grid-template-columns: 1fr 1fr; }
       .nurse-details { grid-column: 1 / -1; }
@@ -98,6 +101,41 @@
       }).join(", ");
     }
 
+    /**
+     * Pain with spots: a header with the worst level and one line per spot,
+     * highest level first. Levels of 7 or more are highlighted.
+     *   Pain — worst 8/10
+     *    1. Head (front) — 8/10 — sharp / stabbing
+     *    2. Lower back (back) — 6/10 — dull ache → spreads to right thigh, right lower leg
+     */
+    function painSpots(d, type) {
+      const lower = (text) => text.toLocaleLowerCase(lang === "no" ? "nb" : lang);
+      const box = document.createElement("div");
+      box.className = "nurse-pain";
+      const head = document.createElement("div");
+      head.className = "nurse-pain-head" + (d.maxLevel >= 7 ? " is-high" : "");
+      head.textContent = `${type} — ${t("pain.nurseWorst", { n: d.maxLevel ?? "—" })}`;
+      const ol = document.createElement("ol");
+      ol.className = "nurse-pain-spots";
+      const spots = [...d.spots].sort((a, b) => (b.level ?? -1) - (a.level ?? -1));
+      for (const spot of spots) {
+        const li = document.createElement("li");
+        if (spot.level >= 7) li.className = "is-high";
+        const view = t(spot.view === "back" ? "nurse.viewBack" : "nurse.viewFront");
+        const name = label(`pain.region.${spot.region}`, spot.regionLabel);
+        const level = document.createElement("strong");
+        level.textContent = `${spot.level ?? "?"}/10`;
+        const sensations = (spot.sensations || []).map((s) => lower(label(`pain.sensation.${s}`, s)));
+        const spreads = (spot.radiatesTo || []).map((r) => lower(label(`pain.region.${r.region}`, r.regionLabel)));
+        li.append(`${spot.number}. ${name} (${view}) — `, level,
+          sensations.length ? ` — ${sensations.join(", ")}` : "",
+          spreads.length ? ` → ${lower(t("pain.spreadsTo"))} ${spreads.join(", ")}` : "");
+        ol.append(li);
+      }
+      box.append(head, ol);
+      return box;
+    }
+
     /** Human-readable details, e.g. "Pain 7/10 – Left knee, Lower back (front)". */
     function describe(n) {
       const d = n.details || {};
@@ -110,7 +148,9 @@
         case "food":
           return `${type} – ${label(`food.${d.item}`, d.item)}`;
         case "pain": {
-          // e.g. "Pain 7/10 · Right thigh (front), Lower back · Sharp / stabbing, Burning"
+          if (Array.isArray(d.spots)) return painSpots(d, type);
+          // Older format (one level for the whole body), e.g.
+          // "Pain 7/10 · Right thigh (front), Lower back · Sharp / stabbing, Burning"
           const parts = [`${type} ${d.level ?? "—"}/10`, painAreas(d)];
           const sensations = (d.sensations || []).map((s) => label(`pain.sensation.${s}`, s));
           if (sensations.length) parts.push(sensations.join(", "));
@@ -136,7 +176,8 @@
       for (const [className, text] of cells) {
         const span = document.createElement("span");
         span.className = className;
-        span.textContent = text;
+        if (text instanceof Node) span.append(text);   // pain with spots (several lines)
+        else span.textContent = text;
         li.append(span);
       }
       return li;
