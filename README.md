@@ -64,7 +64,7 @@ This is a **prototype for a university course**, not a medical device.
 
 - **Fictional data only.** No real patient names, rooms or health information.
 - **No authentication.** Anyone who knows the URL can see all requests and acknowledge or resolve them.
-- Only the **publishable** key (`sb_publishable_…`) is in the code (`js/config.js`). It is meant to be public; the database rules in `supabase/setup.sql` limit what it can do. **Never** commit a secret / `service_role` key, database password or access token. This repo is public.
+- Only the **publishable** key (`sb_publishable_…`) is in the code (`js/config.js`). It is meant to be public; the database rules in `supabase/setup.sql` limit what it can do. **Never** commit a secret / service-role key, database password or access token. This repo is public.
 
 A real hospital version would need at least: staff login (e.g. hospital SSO) and per-device patient registration, scoping to a ward so nurses only see their own patients, an audit log of who acknowledged what and when, a hosting and data-processing agreement with the provider (EU hosting), and a GDPR assessment (DPIA) because this is health data. It might also fall under medical-device rules.
 
