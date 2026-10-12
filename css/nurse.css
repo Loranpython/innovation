@@ -1,0 +1,174 @@
+/*
+  nurse.css — the nurse dashboard (nurse.html). Uses the variables and
+  rules of base.css: square corners, 2px borders, Arial, no shadows.
+*/
+
+[hidden] { display: none !important; }
+
+/* ---------- Header: title + LIVE / sound / notifications ---------- */
+.nurse-header { gap: var(--pad); }
+.nurse-indicators {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 15px;
+  font-weight: normal;
+}
+.nurse-connection {
+  padding: 4px 10px;
+  font-weight: bold;
+  text-transform: uppercase;
+  border: 2px solid currentColor;
+}
+.nurse-connection[data-state="live"]  { color: #7fd38d; }
+.nurse-connection[data-state="connecting"] { color: #f6dc9b; }
+.nurse-connection[data-state="reconnecting"],
+.nurse-connection[data-state="offline"] { color: #ff8f85; }
+.nurse-connection[data-state="local"] { color: #f6dc9b; }
+.nurse-indicator { color: #cfcfcf; white-space: nowrap; }
+.nurse-connection { white-space: nowrap; }
+@media (max-width: 520px) {
+  .nurse-header { font-size: 16px; }
+  .nurse-indicators { gap: 8px; font-size: 13px; flex-wrap: wrap; justify-content: flex-end; }
+}
+
+/* ---------- Start screen ---------- */
+.nurse { padding: var(--pad); }
+.nurse-start {
+  min-height: calc(var(--vh) - var(--header-h) - 2 * var(--pad));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  text-align: center;
+}
+.nurse-start-title { font-size: clamp(32px, 5vw, 56px); text-transform: uppercase; }
+.nurse-start-hint { font-size: 22px; color: var(--color-muted); }
+.nurse-start-button { min-height: 96px; padding: 0 48px; font-size: 28px; text-transform: uppercase; }
+
+/* ---------- Dashboard: open (wide) | acknowledged (narrow) ---------- */
+.nurse-dashboard {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  grid-template-areas:
+    "error    error"
+    "open     ack"
+    "resolved resolved";
+  gap: var(--pad);
+  align-items: start;
+}
+.nurse-error { grid-area: error; }
+.nurse-section--open { grid-area: open; }
+.nurse-section--ack  { grid-area: ack; }
+.nurse-resolved      { grid-area: resolved; }
+@media (max-width: 900px) {
+  .nurse-dashboard {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "error" "open" "ack" "resolved";
+  }
+}
+
+.nurse-section-title {
+  font-size: 20px;
+  font-weight: bold;
+  text-transform: uppercase;
+  padding-bottom: 8px;
+  border-bottom: var(--border);
+  margin-bottom: 12px;
+}
+summary.nurse-section-title { cursor: pointer; min-height: 44px; display: flex; align-items: center; gap: 8px; }
+
+.nurse-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.nurse-empty { color: var(--color-muted); padding: 8px 0; }
+
+.nurse-error {
+  padding: 12px 16px;
+  background: var(--color-alert-bg);
+  border: 2px solid var(--color-alert);
+  color: var(--color-alert);
+  font-weight: bold;
+}
+
+/* ---------- Cards ---------- */
+.nurse-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  background: var(--color-surface);
+  border: var(--border);
+}
+.nurse-card.is-high { border-left: 12px solid var(--color-alert); }
+
+.nurse-card-top,
+.nurse-card-type-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.nurse-card-who { font-size: 20px; font-weight: bold; }
+.nurse-badges { display: flex; gap: 6px; flex-wrap: wrap; }
+.nurse-badge {
+  padding: 3px 8px;
+  font-size: 14px;
+  font-weight: bold;
+  text-transform: uppercase;
+  border: 2px solid currentColor;
+}
+.nurse-badge--new  { color: var(--color-focus); }
+.nurse-badge--high { color: #ffffff; background: var(--color-alert); border-color: var(--color-alert); }
+.nurse-badge--wait { color: var(--color-warning); background: var(--color-warning-bg); }
+
+.nurse-card-type { display: flex; align-items: center; gap: 10px; font-size: 26px; font-weight: bold; text-transform: uppercase; }
+.nurse-card-type .icon { font-size: 36px; }
+.nurse-card-time { color: var(--color-muted); font-variant-numeric: tabular-nums; }
+
+.nurse-detail { font-size: 18px; }
+.nurse-detail-main { font-weight: bold; }
+.nurse-detail-muted { color: var(--color-muted); }
+
+/* Pain spots: "1 · Head (front)    8/10 · Sharp / stabbing" */
+.nurse-spots { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.nurse-spot {
+  display: grid;
+  grid-template-columns: minmax(10em, auto) 1fr;
+  column-gap: 16px;
+  padding: 3px 6px;
+}
+.nurse-spot.is-high { background: var(--color-alert-bg); }
+.nurse-spot-level { font-weight: bold; }
+.nurse-spot-spread { grid-column: 1 / -1; padding-left: 1.5em; color: var(--color-muted); }
+@media (max-width: 520px) {
+  .nurse-spot { grid-template-columns: 1fr; }
+}
+
+.nurse-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 4px; }
+.nurse-actions button { font-weight: bold; text-transform: uppercase; }
+.nurse-button--ack:not(:disabled) { background: var(--color-focus); border-color: var(--color-focus); color: #ffffff; }
+.nurse-button--resolve:not(:disabled) { background: var(--accent-send); border-color: var(--accent-send); color: #ffffff; }
+.nurse-card-error { color: var(--color-alert); font-weight: bold; }
+@media (max-width: 520px) {
+  .nurse-actions button { flex: 1 1 auto; padding: 0 10px; font-size: 16px; }
+}
+
+/* Acknowledged: compact */
+.nurse-card--ack { flex-direction: row; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 10px 12px; }
+.nurse-card--ack .nurse-ack-text { display: flex; align-items: center; gap: 10px; }
+.nurse-card--ack .icon { font-size: 28px; }
+.nurse-card--ack .nurse-actions { margin: 0; }
+
+/* Resolved: one line each */
+.nurse-resolved-item { display: flex; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--color-disabled-bg); color: var(--color-muted); }
+
+/* Newly arrived: short highlight */
+.nurse-card.is-arriving { animation: nurse-arrive 1.6s ease-out; }
+@keyframes nurse-arrive {
+  0%   { background: #fff2a8; outline: 4px solid var(--color-focus); outline-offset: -4px; }
+  100% { background: var(--color-surface); outline: 4px solid transparent; outline-offset: -4px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nurse-card.is-arriving { animation: none; outline: 4px solid var(--color-focus); outline-offset: -4px; }
+}
