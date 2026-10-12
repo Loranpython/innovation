@@ -1,39 +1,38 @@
 /*
-  pain.js — screen #/pain: "Where does it hurt, and how bad?"
+  pain.js — screen #/pain: "Where does it hurt?"
 
-  Parts of the screen:
-    - body figure (body-figure.js): tap body parts to select / unselect
-    - Front / Back toggle
-    - list of selected body parts (tap one to remove it)
-    - pain slider 0–10 with big number, face and colour bar (default 5)
-    - Send button (disabled until at least one body part is selected)
+  The patient:
+    1. taps a body part (front or back) -> close-up -> taps the exact spot(s)
+    2. chooses a pain level 0–10 (faces or slider)        (required)
+    3. chooses what it feels like (sensation pictograms)   (optional)
+    4. presses "Review & send", checks, and sends it to the nurse
 
-  Sends:  ctx.sendNotification({ type: "pain",
-            details: { regions: ["left_knee", ...], intensity: 7, view: "front" } })
-  `regions` holds ids from body-figure.js; the nurse page translates them.
-  Selections are kept when switching view; `view` is the view shown at send time.
+  State lives in `state` inside render(); every change calls a small
+  update function for the part of the screen that changed.
 
-  This module is self-contained: it loads its own pain.css.
+  This module is self-contained: it loads its own pain.css and only uses
+  ctx + the shared helpers in js/ui.js.
 */
 
 import { createScreen, el } from "../../js/ui.js";
-import { createBodyFigure, updateBodyFigure } from "./body-figure.js";
+import { createBodyMap } from "./body-map.js";
+import { toPatientRegion, regionName } from "./body-regions.js";
 
-const DEFAULT_INTENSITY = 5;
+const ZOOM_MIN = 1;
+const ZOOM_MAX = 2;
+const ZOOM_STEP = 0.25;
 
-// Colour bar: one solid colour per value 0–10 (green -> red), no gradients.
-const SCALE_COLOURS = [
-  "#3a7d44", "#5b9a45", "#7fae46", "#a3bd45", "#c6c443", "#e0bd3e",
-  "#e5a23a", "#e08636", "#d86a32", "#c94d2e", "#b3322b",
-];
+// Square toolbar icons (24 × 24, stroke-based like our pictograms).
+const TOOL_ICONS = {
+  whole: "M20 12H5 M11 6l-6 6 6 6",
+  undo: "M9 4L4 9l5 5 M4 9h11a5 5 0 0 1 0 10h-5",
+  zoomOut: "M5 12h14",
+  zoomIn: "M5 12h14 M12 5v14",
+  done: "M4 12l5 5L20 6",
+};
 
-/** Face that matches the pain value. */
-function faceFor(value) {
-  if (value === 0) return "🙂";
-  if (value <= 3) return "😐";
-  if (value <= 6) return "😣";
-  if (value <= 8) return "😖";
-  return "😭";
+function toolIcon(name) {
+  return `<svg viewBox="0 0 24 24" aria-hidden="true" class="pain-tool-icon"><path d="${TOOL_ICONS[name]}"/></svg>`;
 }
 
 /** Load pain.css once (relative to this file, so it works on any URL). */
@@ -51,159 +50,129 @@ export function render(container, ctx) {
   const { t } = ctx;
   const stylesheet = loadStyles();
 
-  // ---- state
-  let view = "front";
-  const selected = new Set();               // region ids, in tap order
-  let intensity = DEFAULT_INTENSITY;
-  const isSelected = (region) => selected.has(region);
+  // ---------------------------------------------------------------- state
+  const state = {
+    points: [],        // [{ view, drawId, region (patient id), x, y }]
+    focus: null,       // close-up: { view, drawId } — null = whole body
+    zoom: 1,
+  };
 
-  // ---- body figure
-  const figureWrap = el("div", { class: "pain-figure" });
-  let figure = null;
-  function drawFigure() {
-    figure = createBodyFigure({ view, t, isSelected, onToggle: toggleRegion });
-    figureWrap.replaceChildren(figure);
+  const viewLabel = (view) => t(view === "front" ? "pain.viewFront" : "pain.viewBack");
+
+  // ---------------------------------------------------------------- body panel
+  const bodyPanel = el("section", { class: "pain-box pain-body" });
+
+  function openCloseup(view, drawId) {
+    state.focus = { view, drawId };
+    state.zoom = 1;
+    renderBody(`${view}:${drawId}`);
   }
 
-  function toggleRegion(region) {
-    if (selected.has(region)) selected.delete(region);
-    else selected.add(region);
-    updateSelection();
+  function closeCloseup() {
+    const { view, drawId } = state.focus;
+    state.focus = null;
+    renderBody(`${view}:${drawId}`);
   }
 
-  // ---- front / back toggle
-  const viewButtons = ["front", "back"].map((name) => {
-    const label = t(name === "front" ? "pain.viewFront" : "pain.viewBack");
-    return el("button", {
+  function addPoint(drawId, x, y) {
+    const { view } = state.focus;
+    state.points.push({ view, drawId, region: toPatientRegion(drawId, view), x, y });
+    renderBody();
+    changed();
+  }
+
+  function undoPoint() {
+    // Remove the last point on the side (front/back) of the close-up.
+    const index = state.points.map((p) => p.view).lastIndexOf(state.focus.view);
+    if (index >= 0) state.points.splice(index, 1);
+    renderBody();
+    changed();
+  }
+
+  function setZoom(zoom) {
+    state.zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, zoom));
+    renderBody();
+  }
+
+  function toolButton(name, label, onClick, disabled = false) {
+    const button = el("button", {
       type: "button",
-      class: "pain-view-button",
-      "data-view": name,
+      class: "pain-tool",
       "aria-label": label,
-      onClick: () => {
-        view = name;
-        drawFigure();
-        updateViewButtons();
-      },
-    }, [label]);
-  });
-  function updateViewButtons() {
-    for (const button of viewButtons) {
-      button.setAttribute("aria-pressed", String(button.dataset.view === view));
-    }
-  }
-  const viewToggle = el("div", {
-    class: "pain-view-toggle",
-    role: "group",
-    "aria-label": t("pain.viewToggle"),
-  }, viewButtons);
-
-  // ---- selected list
-  const selectionList = el("ul", { class: "pain-selection-list", "aria-live": "polite" });
-  const clearButton = el("button", {
-    type: "button",
-    class: "pain-clear",
-    "aria-label": t("pain.clearAria"),
-    onClick: () => {
-      selected.clear();
-      updateSelection();
-    },
-  }, [t("pain.clear")]);
-
-  // ---- intensity
-  const valueNumber = el("span", { class: "pain-value-number" });
-  const valueFace = el("span", { class: "pain-value-face icon", "aria-hidden": "true" });
-  const scaleBar = el("div", { class: "pain-scale", "aria-hidden": "true" },
-    SCALE_COLOURS.map((colour) => el("span", { class: "pain-scale-step", style: `--step-colour: ${colour}` }))
-  );
-  const slider = el("input", {
-    type: "range",
-    class: "pain-slider",
-    min: "0",
-    max: "10",
-    step: "1",
-    value: String(intensity),
-    "aria-label": t("pain.intensityAria"),
-    onInput: (event) => {
-      intensity = Number(event.target.value);
-      updateIntensity();
-    },
-  });
-
-  // ---- send
-  const sendButton = el("button", {
-    type: "button",
-    class: "big-button big-button--send pain-send",
-    "aria-label": t("pain.sendAria"),
-    onClick: () => {
-      if (selected.size === 0) return;
-      ctx.sendNotification({
-        type: "pain",
-        details: { regions: [...selected], intensity, view },
-        icon: faceFor(intensity),
-      });
-      ctx.navigate("#/sent");
-    },
-  }, [t("pain.send")]);
-
-  // ---- updates
-  function updateSelection() {
-    if (figure) updateBodyFigure(figure, isSelected);
-    if (selected.size === 0) {
-      selectionList.replaceChildren(el("li", { class: "pain-selection-empty" }, [t("pain.noneSelected")]));
-    } else {
-      selectionList.replaceChildren(...[...selected].map((region) => {
-        const name = t(`region.${region}`);
-        return el("li", {}, [
-          el("button", {
-            type: "button",
-            class: "pain-chip",
-            "aria-label": t("pain.removeRegion", { region: name }),
-            onClick: () => toggleRegion(region),
-          }, [name, el("span", { class: "pain-chip-x", "aria-hidden": "true" }, ["✕"])]),
-        ]);
-      }));
-    }
-    sendButton.disabled = selected.size === 0;
-    clearButton.disabled = selected.size === 0;
-  }
-
-  function updateIntensity() {
-    valueNumber.textContent = String(intensity);
-    valueFace.textContent = faceFor(intensity);
-    slider.setAttribute("aria-valuetext", `${intensity} / 10`);
-    scaleBar.querySelectorAll(".pain-scale-step").forEach((step, index) => {
-      step.classList.toggle("is-on", index <= intensity);
+      title: label,
+      "data-focus-key": `tool:${name}`,
+      disabled,
+      onClick,
     });
+    button.innerHTML = toolIcon(name);
+    return button;
   }
 
-  // ---- layout
+  /**
+   * Redraw the body panel. Keeps keyboard focus on the same element
+   * (data-focus-key), or on `focusKey` when given.
+   */
+  function renderBody(focusKey) {
+    const keepKey = focusKey ?? document.activeElement?.dataset?.focusKey;
+
+    if (state.focus) {
+      const { view, drawId } = state.focus;
+      const hasPointsOnSide = state.points.some((p) => p.view === view);
+      const map = createBodyMap({
+        view, points: state.points, focusDrawId: drawId, zoom: state.zoom, t, onPoint: addPoint,
+      });
+      bodyPanel.replaceChildren(
+        el("div", { class: "pain-closeup" }, [
+          el("div", { class: "pain-closeup-toolbar" }, [
+            toolButton("whole", t("pain.wholeBody"), closeCloseup),
+            el("div", { class: "pain-closeup-tools" }, [
+              toolButton("undo", t("pain.undo"), undoPoint, !hasPointsOnSide),
+              toolButton("zoomOut", t("pain.zoomOut"), () => setZoom(state.zoom - ZOOM_STEP), state.zoom <= ZOOM_MIN),
+              toolButton("zoomIn", t("pain.zoomIn"), () => setZoom(state.zoom + ZOOM_STEP), state.zoom >= ZOOM_MAX),
+              toolButton("done", t("pain.done"), closeCloseup),
+            ]),
+          ]),
+          el("div", { class: "pain-closeup-map" }, [map]),
+          el("p", { class: "pain-closeup-title" }, [
+            el("strong", {}, [regionName(toPatientRegion(drawId, view), t)]),
+            ` · ${viewLabel(view)} — ${t("pain.closeupHint")}`,
+          ]),
+        ])
+      );
+    } else {
+      bodyPanel.replaceChildren(
+        el("div", { class: "pain-views" }, ["front", "back"].map((view) =>
+          el("div", { class: "pain-view" }, [
+            el("h2", { class: "pain-view-label" }, [viewLabel(view)]),
+            el("div", { class: "pain-view-map" }, [
+              createBodyMap({
+                view, points: state.points, t, onRegion: (drawId) => openCloseup(view, drawId),
+              }),
+            ]),
+          ])
+        )),
+        el("p", { class: "pain-hint" }, [t("pain.bodyHint")]),
+      );
+    }
+
+    // Give every region a focus key so focus survives a redraw.
+    for (const svg of bodyPanel.querySelectorAll(".body-svg")) {
+      const view = svg.classList.contains("body-svg--back") ? "back" : "front";
+      for (const region of svg.querySelectorAll(".body-region")) {
+        region.dataset.focusKey = `${view}:${region.dataset.drawId}`;
+      }
+    }
+    if (keepKey) bodyPanel.querySelector(`[data-focus-key="${keepKey}"]`)?.focus();
+  }
+
+  // ---------------------------------------------------------------- updates
+  /** Called after every change of the answers. */
+  function changed() {}
+
+  // ---------------------------------------------------------------- layout
   const { root, body } = createScreen(ctx, { title: t("pain.title"), className: "pain" });
-  body.append(
-    el("div", { class: "pain-layout" }, [
-      figureWrap,
-      el("div", { class: "pain-panel" }, [
-        viewToggle,
-        el("div", { class: "pain-selection" }, [
-          el("div", { class: "pain-panel-row" }, [
-            el("h2", { class: "pain-heading" }, [t("pain.selected")]),
-            clearButton,
-          ]),
-          selectionList,
-        ]),
-        el("div", { class: "pain-intensity" }, [
-          el("h2", { class: "pain-heading" }, [t("pain.intensity")]),
-          el("div", { class: "pain-value" }, [
-            valueNumber,
-            el("span", { class: "pain-value-max" }, ["/ 10"]),
-            valueFace,
-          ]),
-          scaleBar,
-          slider,
-        ]),
-        sendButton,
-      ]),
-    ])
-  );
+  const side = el("div", { class: "pain-side" });
+  body.append(el("div", { class: "pain-main" }, [bodyPanel, side]));
 
   // Hide until pain.css is loaded, so the screen does not flash unstyled.
   if (!stylesheet.sheet) {
@@ -211,9 +180,6 @@ export function render(container, ctx) {
     stylesheet.addEventListener("load", () => { root.style.visibility = ""; }, { once: true });
   }
 
-  drawFigure();
-  updateViewButtons();
-  updateSelection();
-  updateIntensity();
+  renderBody();
   container.append(root);
 }

@@ -1,90 +1,81 @@
 /*
   pain.css — styles for the pain screen only (loaded by pain.js).
 
-  Layout:
-    landscape  body figure left, panel (toggle, selection, slider, send) right
-    portrait   figure on top, panel below (2 columns)
-    small      everything stacked, the page may scroll
+  Layout
+    landscape (main target 1280×800): body panel left; level + sensations
+              right; summary bar across the bottom. Fits without scrolling.
+    portrait / narrow (<700px): body -> level -> sensations stacked, the page
+              scrolls and the summary bar sticks to the bottom.
 
-  Same design rules as base.css: square corners, no shadows, no gradients.
+  Same rules as base.css: square corners, 2px dark borders, no shadows, no
+  gradients. Circles only inside pictograms (faces, pain-point markers).
 */
 
-.pain {
-  --body-fill: #e6e3dc;          /* unselected body part */
-  --pain-selected: #c8553d;      /* selected body part */
-  --pain-chip-bg: #f2d3cc;       /* selected item in the list */
-  height: 100%;                  /* fit exactly in the screen (no scroll) */
+/* ---------- colours (pain module only) ---------- */
+:root {
+  --pain-accent: #c8553d;          /* sensation part of pictograms, markers */
+  --pain-soft: #f6dcd4;            /* selected region / selected button */
+  --pain-body-fill: #e6e3dc;
+  --pain-body-stroke: #8c8a84;
+  --pain-closeup-bg: #ecebe6;
+
+  /* 0–10 scale, green -> red, one solid colour per step */
+  --pain-scale-0: #3a7d44;
+  --pain-scale-1: #5b9a45;
+  --pain-scale-2: #7fae46;
+  --pain-scale-3: #a3bd45;
+  --pain-scale-4: #c6c443;
+  --pain-scale-5: #e0bd3e;
+  --pain-scale-6: #e5a23a;
+  --pain-scale-7: #e08636;
+  --pain-scale-8: #d86a32;
+  --pain-scale-9: #c94d2e;
+  --pain-scale-10: #b3322b;
+
+  /* anatomy overlay */
+  --pain-anatomy-bone: #faf7ec;
+  --pain-anatomy-bone-outline: #9cafa8;
+  --pain-anatomy-muscle: #ad7465;
+  --pain-anatomy-organ: #ae7b6f;
+  --pain-anatomy-lung: #c4968e;
+  --pain-anatomy-heart: #a3544c;
+  --pain-anatomy-liver: #a6785f;
+  --pain-anatomy-gallbladder: #98b077;
 }
 
+/* ---------- page structure ---------- */
+.pain {
+  --pain-summary-h: 88px;
+  height: 100%;                        /* fit the screen exactly (landscape) */
+}
 .pain .screen-body {
   align-items: stretch;
   justify-content: stretch;
 }
 
-.pain-layout {
+.pain-main {
   flex: 1 1 auto;
+  min-width: 0;
   min-height: 0;
-  min-width: 0;                  /* never wider than the screen */
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(340px, 480px);
+  grid-template-columns: minmax(0, 1fr) 470px;
   grid-template-rows: minmax(0, 1fr);
   gap: var(--pad);
 }
 
-/* ---------- body figure ---------- */
-.pain-figure {
-  min-height: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8px;
-  background: var(--color-surface);
-  border: var(--border);
-}
-
-.body-figure {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
-.body-region {
-  fill: var(--body-fill);
-  stroke: var(--color-border);
-  stroke-width: 1.2;
-  stroke-linejoin: miter;
-  cursor: pointer;
-}
-.body-region[aria-pressed="true"] {
-  fill: var(--pain-selected);
-  stroke-width: 2.5;
-}
-.body-region:focus { outline: none; }
-.body-region:focus-visible {
-  stroke: var(--color-focus);
-  stroke-width: 3;
-}
-
-/* Face, spine and side letters: decoration only, never block taps */
-.body-detail,
-.body-detail-fill,
-.body-side-label { pointer-events: none; }
-.body-detail { stroke: var(--color-border); stroke-width: 1.5; fill: none; }
-.body-detail--dashed { stroke-dasharray: 4 4; }
-.body-detail-fill { fill: var(--color-border); }
-.body-side-label {
-  font-family: Arial, Helvetica, sans-serif;
-  font-weight: bold;
-  font-size: 16px;
-  fill: var(--color-text);
-}
-
-/* ---------- panel ---------- */
-.pain-panel {
+.pain-side {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--pad);
+}
+
+/* A white panel with our 2px border */
+.pain-box {
+  background: var(--color-surface);
+  border: var(--border);
+  padding: 12px 16px;
+  min-width: 0;
 }
 
 .pain-heading {
@@ -92,170 +83,161 @@
   font-weight: bold;
 }
 
-/* Front / Back toggle: two square buttons, the active one is dark */
-.pain-view-toggle {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  flex: 0 0 auto;
-}
-.pain-view-button + .pain-view-button { border-left: none; }
-.pain-view-button[aria-pressed="true"] {
-  background: var(--color-text);
-  color: var(--color-surface);
-  font-weight: bold;
-}
-
-/* Selected body parts */
-.pain-selection {
-  flex: 1 1 auto;
-  min-height: 140px;
+/* ---------- body panel ---------- */
+.pain-body {
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 8px 12px 12px;
-  background: var(--color-surface);
-  border: var(--border);
 }
-.pain-panel-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-.pain-selection-list {
+
+.pain-views {
   flex: 1 1 auto;
   min-height: 0;
-  overflow: auto;
-  list-style: none;
-  padding: 0;
-  display: flex;
-  flex-wrap: wrap;
-  align-content: flex-start;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--pad);
 }
-.pain-selection-empty { color: var(--color-muted); }
-.pain-chip {
-  display: inline-flex;
+.pain-view {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 12px;
-  background: var(--pain-chip-bg);
+  gap: 4px;
+}
+.pain-view-label {
+  font-size: 18px;
   font-weight: bold;
 }
-.pain-chip-x { font-size: 16px; }
+.pain-view-map {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+}
+.pain-hint {
+  text-align: center;
+  color: var(--color-muted);
+}
 
-/* Intensity */
-.pain-intensity {
-  flex: 0 0 auto;
+/* The SVG figure */
+.body-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.body-region {
+  fill: var(--pain-body-fill);
+  stroke: var(--pain-body-stroke);
+  stroke-width: 1.2;
+  cursor: pointer;
+}
+.body-region:focus { outline: none; }
+.body-region:focus-visible {
+  stroke: var(--color-focus);
+  stroke-width: 3;
+}
+.body-region.is-selected {
+  fill: var(--pain-soft);
+  stroke: var(--pain-accent);
+  stroke-width: 1.8;
+}
+.body-detail {
+  fill: none;
+  stroke: var(--pain-body-stroke);
+  stroke-width: 1;
+  pointer-events: none;
+}
+
+/* Anatomy: faint and never in the way of a tap */
+.body-anatomy { pointer-events: none; opacity: 0.85; }
+.anatomy-bones { fill: var(--pain-anatomy-bone); stroke: var(--pain-anatomy-bone-outline); stroke-width: 2.2; opacity: 0.45; }
+.anatomy-bones path { fill: none; }
+.anatomy-muscles { fill: var(--pain-anatomy-muscle); fill-opacity: 0.08; stroke: var(--pain-anatomy-muscle); stroke-opacity: 0.22; stroke-width: 0.8; }
+.anatomy-fibers { fill: none; stroke-opacity: 0.15; }
+.anatomy-organs { fill: var(--pain-anatomy-organ); fill-opacity: 0.12; stroke: var(--pain-anatomy-organ); stroke-opacity: 0.34; stroke-width: 0.9; }
+.anatomy-lungs { fill: var(--pain-anatomy-lung); }
+.anatomy-heart { fill: var(--pain-anatomy-heart); stroke: var(--pain-anatomy-heart); fill-opacity: 0.22; }
+.anatomy-liver { fill: var(--pain-anatomy-liver); }
+.anatomy-airway { fill: none; stroke-width: 1.8; }
+.anatomy-diaphragm { fill: none; stroke-opacity: 0.3; stroke-width: 1.1; }
+.anatomy-kidneys { fill: var(--pain-anatomy-liver); fill-opacity: 0.18; stroke: var(--pain-anatomy-liver); stroke-opacity: 0.4; }
+.anatomy-gallbladder { fill: var(--pain-anatomy-gallbladder); fill-opacity: 0.4; stroke: var(--pain-anatomy-gallbladder); stroke-opacity: 0.55; }
+.anatomy-brain { fill: var(--pain-anatomy-lung); fill-opacity: 0.15; stroke: var(--pain-anatomy-lung); stroke-opacity: 0.4; }
+
+/* Pain points: marker with a soft halo */
+.pain-marks { pointer-events: none; }
+.pain-mark { fill: var(--pain-accent); stroke: var(--color-surface); stroke-width: 1.5; }
+.pain-mark-halo { fill: var(--pain-accent); opacity: 0.2; }
+
+/* ---------- close-up ---------- */
+.pain-closeup {
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 8px 12px 4px;
-  background: var(--color-surface);
-  border: var(--border);
 }
-.pain-value {
+.pain-closeup-toolbar {
   display: flex;
-  align-items: center;
+  justify-content: space-between;
   gap: 8px;
 }
-.pain-value-number { font-size: 56px; font-weight: bold; line-height: 1; min-width: 1.2em; }
-.pain-value-max { font-size: 20px; color: var(--color-muted); }
-.pain-value-face { font-size: 56px; margin-left: auto; }
-
-/* Colour bar: 11 solid steps, steps up to the value are filled */
-.pain-scale {
-  display: grid;
-  grid-template-columns: repeat(11, 1fr);
-  gap: 2px;
-  height: 20px;
+.pain-closeup-tools {
+  display: flex;
+  gap: 8px;
 }
-.pain-scale-step {
-  border: 2px solid var(--color-border);
-  background: var(--color-surface);
-}
-.pain-scale-step.is-on { background: var(--step-colour); }
-
-/* Slider: square track and big square thumb (WebKit/Blink + Firefox) */
-.pain-slider {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 100%;
-  height: 64px;
-  margin: 0;
-  background: transparent;
-  cursor: pointer;
-}
-.pain-slider::-webkit-slider-runnable-track {
-  box-sizing: border-box;
-  height: 16px;
-  background: var(--color-surface);
-  border: 2px solid var(--color-border);
-  border-radius: 0;
-}
-.pain-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  box-sizing: border-box;
-  width: 44px;
+.pain-tool {
+  width: 56px;
   height: 56px;
-  margin-top: -22px;          /* centre the thumb on the 16px track */
+  min-width: 56px;
+  min-height: 56px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.pain-tool[data-focus-key="tool:done"]:not(:disabled) {
   background: var(--color-text);
-  border: 2px solid var(--color-border);
-  border-radius: 0;
+  color: var(--color-surface);
 }
-.pain-slider::-moz-range-track {
-  box-sizing: border-box;
-  height: 16px;
-  background: var(--color-surface);
-  border: 2px solid var(--color-border);
-  border-radius: 0;
+.pain-tool-icon {
+  width: 26px;
+  height: 26px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.5;
+  stroke-linecap: square;
+  stroke-linejoin: miter;
 }
-.pain-slider::-moz-range-progress {
-  height: 12px;
-  background: var(--color-surface);
-  border-radius: 0;
+.pain-closeup-map {
+  flex: 1 1 auto;
+  min-height: 0;
+  background: var(--pain-closeup-bg);
+  border: var(--border);
+  overflow: hidden;
 }
-.pain-slider::-moz-range-thumb {
-  box-sizing: border-box;
-  width: 44px;
-  height: 56px;
-  background: var(--color-text);
-  border: 2px solid var(--color-border);
-  border-radius: 0;
+.body-svg--closeup {
+  touch-action: none;                  /* taps place points, never scroll */
 }
-.pain-slider:focus { outline: none; }
-.pain-slider:focus-visible::-webkit-slider-thumb { outline: 4px solid var(--color-focus); }
-.pain-slider:focus-visible::-moz-range-thumb { outline: 4px solid var(--color-focus); }
-
-.pain-send {
-  flex: 0 0 auto;
-  width: 100%;
-}
-
-/* ---------- portrait: figure on top, panel in 2 columns below ---------- */
-@media (orientation: portrait) {
-  .pain-layout {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr) auto;
-  }
-  .pain-panel {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: auto 1fr auto;
-  }
-  .pain-view-toggle { grid-column: 1; grid-row: 1; }
-  .pain-selection   { grid-column: 1; grid-row: 2; }
-  .pain-intensity   { grid-column: 2; grid-row: 1 / span 2; }
-  .pain-send        { grid-column: 1 / span 2; grid-row: 3; }
+.body-svg--closeup .body-region { cursor: crosshair; }
+/* Zoomed in, keep lines as thin as on the whole body (widths in screen px) */
+.body-svg--closeup path,
+.body-svg--closeup ellipse,
+.body-svg--closeup circle { vector-effect: non-scaling-stroke; }
+.body-svg--closeup .body-region { stroke-width: 1.5; }
+.body-svg--closeup .body-region.is-selected { stroke-width: 3; }
+.body-svg--closeup .body-region:focus-visible { stroke-width: 4; }
+.body-svg--closeup .pain-mark { stroke-width: 2; }
+.pain-closeup-title {
+  text-align: center;
 }
 
-/* ---------- small screens: stack everything, allow scrolling ---------- */
-@media (max-width: 640px), (max-height: 560px) {
+/* ---------- portrait / narrow: stack, page scrolls ---------- */
+@media (orientation: portrait), (max-width: 700px), (max-height: 560px) {
   .pain { height: auto; }
-  .pain-layout {
+  .pain-main {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto auto;
+    grid-template-rows: auto;
   }
-  .pain-figure { height: max(360px, 70vh); }
-  .pain-panel { display: flex; }
+  .pain-body { height: max(420px, 62vh); }
 }
