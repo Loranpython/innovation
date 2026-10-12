@@ -81,6 +81,23 @@
       return hasString(key) ? t(key) : fallback;
     }
 
+    /**
+     * Pain areas in the nurse's language, built from the points (one per
+     * view + region). Left/right is already from the patient's perspective.
+     * Limbs exist on both views, so they get "(front)"/"(back)"; hands and
+     * central parts have their own back-view names (e.g. "Lower back").
+     */
+    function painAreas(d) {
+      const seen = new Map();
+      for (const { view, region } of d.points || []) seen.set(`${view}:${region}`, { view, region });
+      if (seen.size === 0) return d.areas?.length ? d.areas.join(", ") : t("pain.noAreas");
+      return [...seen.values()].map(({ view, region }) => {
+        const name = label(`pain.region.${region}`, region);
+        const isLimb = /^(left|right)_/.test(region) && !/hand$/.test(region);
+        return isLimb ? `${name} (${t(view === "back" ? "nurse.viewBack" : "nurse.viewFront")})` : name;
+      }).join(", ");
+    }
+
     /** Human-readable details, e.g. "Pain 7/10 – Left knee, Lower back (front)". */
     function describe(n) {
       const d = n.details || {};
@@ -93,9 +110,11 @@
         case "food":
           return `${type} – ${label(`food.${d.item}`, d.item)}`;
         case "pain": {
-          const regions = (d.regions || []).map((r) => label(`region.${r}`, r)).join(", ");
-          const view = d.view ? ` (${t(d.view === "back" ? "nurse.viewBack" : "nurse.viewFront")})` : "";
-          return `${type} ${d.intensity}/10 – ${regions}${view}`;
+          // e.g. "Pain 7/10 · Right thigh (front), Lower back · Sharp / stabbing, Burning"
+          const parts = [`${type} ${d.level ?? "—"}/10`, painAreas(d)];
+          const sensations = (d.sensations || []).map((s) => label(`pain.sensation.${s}`, s));
+          if (sensations.length) parts.push(sensations.join(", "));
+          return parts.join(" · ");
         }
         case "speech":
           return `${type} – "${d.translatedText ?? ""}" (${d.originalLang ?? "?"}: "${d.originalText ?? ""}")`;
