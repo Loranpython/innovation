@@ -23,13 +23,14 @@
 
 import { createScreen, el } from "../../js/ui.js";
 import { createPainStore, ZOOM_MIN, ZOOM_MAX, ZOOM_STEP } from "./pain-state.js";
-import { createBodyMap, fitMarkers, screenToSvg } from "./body-map.js";
+import { createBodyMap, fitMarkers, screenToSvg, regionAtPoint, markerAtPoint } from "./body-map.js";
 import { findRegion, toPatientRegion, regionName, englishRegionLabel } from "./body-regions.js";
 import { faceEmoji } from "./pain-faces.js";
 import { SENSATIONS, radiatingIcon } from "./sensation-icons.js";
 import { createSidePanel } from "./spot-editor.js";
 import { createSummaryBar } from "./summary-bar.js";
 import { createOverlay, openReview, openConfirm } from "./review.js";
+import { attachSensationDrag, startMarkerMove } from "./drag.js";
 
 // Square toolbar icons (24 × 24, stroke-based like our pictograms).
 const TOOL_ICONS = {
@@ -94,12 +95,45 @@ export function render(container, ctx) {
     store.select(spotId);
   }
 
+  /**
+   * A feeling was dragged and released at a screen point:
+   * on (or within 20px of) a marker -> add it to that spot (no duplicates);
+   * on the body -> new spot right there; anywhere else -> nothing.
+   */
+  function dropSensation(sensation, clientX, clientY) {
+    const spotId = markerAtPoint(bodyPanel, clientX, clientY, 20);
+    if (spotId) { store.addSensation(spotId, sensation); return; }
+    const hit = regionAtPoint(clientX, clientY);
+    if (hit && bodyPanel.contains(hit.svg)) {
+      store.addSpot({ view: hit.view, drawId: hit.drawId, x: hit.x, y: hit.y, sensations: [sensation] });
+    }
+  }
+
+  /** Close-up: the selected marker was dragged and released here. */
+  function dropMarker(spotId, svg, clientX, clientY) {
+    const hit = clientX === null ? null : regionAtPoint(clientX, clientY);
+    if (hit && hit.svg === svg) store.moveSpot(spotId, { drawId: hit.drawId, x: hit.x, y: hit.y });
+    else store.select(spotId);                       // not on the body: put it back
+  }
+
   function wireSvg(svg, inCloseup) {
     const view = svg.dataset.view;
     if (inCloseup) {
       // Pointer events: mouse, pen and touch. touch-action: none (pain.css).
       svg.addEventListener("pointerdown", (event) => {
-        if (event.button !== 0 || event.target.closest(".pain-spot")) return;
+        if (event.button !== 0) return;
+        const marker = event.target.closest(".pain-spot");
+        if (marker) {
+          // Only the selected marker can be moved; a tap selects (click).
+          if (marker.dataset.spotId === state.selectedSpotId && state.mode !== "radiating") {
+            event.preventDefault();
+            startMarkerMove(event, {
+              marker, svg,
+              onDrop: (x, y) => dropMarker(marker.dataset.spotId, svg, x, y),
+            });
+          }
+          return;
+        }
         const region = event.target.closest(".body-region");
         if (!region) return;                         // tapped next to the body
         event.preventDefault();
@@ -229,7 +263,15 @@ export function render(container, ctx) {
   // ---------------------------------------------------------------- panels
   const { root, body } = createScreen(ctx, { title: t("pain.title"), className: "pain" });
   const overlay = createOverlay(root);
-  const sidePanel = createSidePanel({ t, store, viewLabel });
+  const sidePanel = createSidePanel({
+    t,
+    store,
+    viewLabel,
+    attachTileDrag: (tile, sensation) => attachSensationDrag(tile, {
+      iconHtml: SENSATIONS.find((s) => s.id === sensation).icon(),
+      onDrop: (x, y) => dropSensation(sensation, x, y),
+    }),
+  });
   const summaryBar = createSummaryBar({
     t,
     store,

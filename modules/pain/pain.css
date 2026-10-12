@@ -544,6 +544,8 @@
 /* ---------- spot markers + radiation arrows (v3) ---------- */
 /* Markers are drawn in screen px (see fitMarkers in body-map.js). */
 .pain-spot { cursor: pointer; }
+.pain-spot.is-selected { cursor: move; }
+.pain-spot.is-moving { pointer-events: none; opacity: 0.85; }
 .pain-spot:focus { outline: none; }
 .pain-spot-dot { stroke: var(--color-text); stroke-width: 1.5; }
 .pain-spot-number {
