@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<!--
+  nurse.html — DEBUG nurse view (not linked from the patient screen).
+
+  Proves the notification pipeline works during the demo:
+    - shows notifications already stored in localStorage ("pcs_notifications")
+    - listens on BroadcastChannel("pcs_notifications") for new ones, live
+    - newest on top: time · room · patient · type · readable details
+    - "Clear" empties the list and localStorage
+
+  Demo: open index.html in one tab/window and nurse.html in another tab of
+  the SAME browser. Optional: nurse.html?lang=no for Norwegian.
+
+  The real nurse dashboard will come later and use a real backend.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nurse view (debug)</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="./css/base.css">
+  <style>
+    .nurse { padding: var(--pad); display: flex; flex-direction: column; gap: var(--pad); }
+    .nurse-bar { display: flex; align-items: center; justify-content: space-between; gap: var(--pad); }
+    .nurse-hint { color: var(--color-muted); }
+    .nurse-list { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+    .nurse-item {
+      display: grid;
+      grid-template-columns: 6em 7em minmax(8em, 12em) 3em 1fr;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: var(--color-surface);
+      border: var(--border);
+    }
+    .nurse-item.is-new { border-width: 4px; }
+    .nurse-time { font-variant-numeric: tabular-nums; }
+    .nurse-room { font-weight: bold; }
+    .nurse-icon { font-size: 32px; }
+    .nurse-details { font-weight: bold; }
+    .nurse-empty { color: var(--color-muted); padding: 12px 0; }
+    @media (max-width: 700px) {
+      .nurse-item { grid-template-columns: 1fr 1fr; }
+      .nurse-details { grid-column: 1 / -1; }
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header"><span id="nurse-title"></span></header>
+  <main class="nurse">
+    <div class="nurse-bar">
+      <p class="nurse-hint" id="nurse-hint"></p>
+      <button type="button" class="big-button" id="nurse-clear"></button>
+    </div>
+    <ul class="nurse-list" id="nurse-list" aria-live="polite"></ul>
+  </main>
+
+  <script type="module">
+    import { setLanguage, t, hasString } from "./js/strings.js";
+    import {
+      CHANNEL_NAME, readStoredNotifications, clearStoredNotifications,
+    } from "./js/notifications.js";
+
+    const params = new URLSearchParams(location.search);
+    const lang = setLanguage(params.get("lang") || "en");
+    document.documentElement.lang = lang === "no" ? "nb" : lang;
+    document.title = t("nurse.title");
+
+    const ICONS = { toilet: "🚻", drink: "💧", food: "🍽️", pain: "😣", speech: "🗣️" };
+
+    const list = document.getElementById("nurse-list");
+    const clearButton = document.getElementById("nurse-clear");
+    document.getElementById("nurse-title").textContent = t("nurse.title");
+    document.getElementById("nurse-hint").textContent = t("nurse.listening");
+    clearButton.textContent = t("nurse.clear");
+    clearButton.setAttribute("aria-label", t("nurse.clearAria"));
+
+    /** Translate `key`, or return `fallback` if no translation exists. */
+    function label(key, fallback) {
+      return hasString(key) ? t(key) : fallback;
+    }
+
+    /** Human-readable details, e.g. "Pain 7/10 – Left knee, Lower back (front)". */
+    function describe(n) {
+      const d = n.details || {};
+      const type = label(`type.${n.type}`, n.type);
+      switch (n.type) {
+        case "toilet":
+          return type;
+        case "drink":
+          return `${type} – ${label(`drink.${d.item}`, d.item)}`;
+        case "food":
+          return `${type} – ${label(`food.${d.item}`, d.item)}`;
+        case "pain": {
+          const regions = (d.regions || []).map((r) => label(`region.${r}`, r)).join(", ");
+          const view = d.view ? ` (${t(d.view === "back" ? "nurse.viewBack" : "nurse.viewFront")})` : "";
+          return `${type} ${d.intensity}/10 – ${regions}${view}`;
+        }
+        case "speech":
+          return `${type} – "${d.translatedText ?? ""}" (${d.originalLang ?? "?"}: "${d.originalText ?? ""}")`;
+        default:
+          return `${type} – ${JSON.stringify(d)}`;
+      }
+    }
+
+    function itemElement(n, isNew) {
+      const li = document.createElement("li");
+      li.className = "nurse-item" + (isNew ? " is-new" : "");
+      const cells = [
+        ["nurse-time", new Date(n.timestamp).toLocaleTimeString()],
+        ["nurse-room", t("nurse.room", { room: n.room })],
+        ["nurse-patient", n.patient],
+        ["nurse-icon icon", ICONS[n.type] || "🔔"],
+        ["nurse-details", describe(n)],
+      ];
+      for (const [className, text] of cells) {
+        const span = document.createElement("span");
+        span.className = className;
+        span.textContent = text;
+        li.append(span);
+      }
+      return li;
+    }
+
+    function showEmptyIfNeeded() {
+      if (list.children.length === 0) {
+        const li = document.createElement("li");
+        li.className = "nurse-empty";
+        li.textContent = t("nurse.empty");
+        list.append(li);
+      }
+    }
+
+    function add(n, isNew) {
+      list.querySelector(".nurse-empty")?.remove();
+      list.prepend(itemElement(n, isNew));   // newest on top
+    }
+
+    // Already stored notifications (oldest first -> prepend makes newest top)
+    for (const n of readStoredNotifications()) add(n, false);
+    showEmptyIfNeeded();
+
+    // Live notifications from patient screens in this browser
+    if ("BroadcastChannel" in window) {
+      const channel = new BroadcastChannel(CHANNEL_NAME);
+      channel.addEventListener("message", (event) => {
+        console.log("[nurse] received", event.data);
+        add(event.data, true);
+      });
+    }
+
+    clearButton.addEventListener("click", () => {
+      clearStoredNotifications();
+      list.replaceChildren();
+      showEmptyIfNeeded();
+    });
+  </script>
+</body>
+</html>
