@@ -238,7 +238,9 @@
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
+  padding-top: 8px;
+  padding-bottom: 8px;
 }
 .pain-level-head {
   display: flex;
@@ -253,7 +255,7 @@
   min-width: 96px;
   justify-content: flex-end;
 }
-.pain-value strong { font-size: 36px; line-height: 1; }
+.pain-value strong { font-size: 32px; line-height: 1; }
 .pain-value span { font-size: 18px; color: var(--color-muted); }
 
 /* Six face buttons (0, 2, 4, 6, 8, 10) */
@@ -264,14 +266,15 @@
 }
 .pain-face {
   min-width: 56px;
-  min-height: 64px;
-  padding: 2px 0 0;
+  min-height: 56px;
+  padding: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  border-bottom: 6px solid var(--face-colour);   /* scale colour as a strip */
+  gap: 0;
+  line-height: 1.1;
+  border-bottom: 5px solid var(--face-colour);   /* scale colour as a strip */
 }
 .pain-face.is-active {
   background: var(--pain-soft);
@@ -281,10 +284,10 @@
   outline-offset: -4px;
 }
 .pain-face[aria-pressed="true"] .pain-face-number { text-decoration: underline; }
-.pain-face-number { font-weight: bold; font-size: 16px; }
+.pain-face-number { font-weight: bold; font-size: 15px; }
 .face-art {
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
   fill: var(--color-surface);
   stroke: var(--color-text);
   stroke-width: 1.8;
@@ -301,8 +304,8 @@
   display: grid;
   grid-template-columns: repeat(11, minmax(0, 1fr));
   gap: 2px;
-  height: 44px;
-  padding: 7px 0;
+  height: 36px;
+  padding: 6px 0;
   cursor: pointer;
   touch-action: pan-y;          /* horizontal drags move the slider */
 }
@@ -316,7 +319,7 @@
 .pain-scale.is-unset .pain-scale-step { opacity: 0.55; }
 .pain-scale-thumb {
   grid-row: 1;
-  margin: -7px -2px;
+  margin: -6px -2px;
   border: 5px solid var(--color-text);
   background: transparent;
   pointer-events: none;
@@ -327,13 +330,17 @@
   display: grid;
   grid-template-columns: repeat(11, minmax(0, 1fr));
   gap: 2px;
+  margin-top: -4px;
   text-align: center;
   font-size: 14px;
+  line-height: 1.1;
 }
 .pain-scale-labels {
   display: flex;
   justify-content: space-between;
+  margin-top: -4px;
   font-size: 14px;
+  line-height: 1.1;
   color: var(--color-muted);
 }
 
@@ -350,10 +357,10 @@
 .pain-sensations-grid {
   flex: 1 1 auto;
   min-height: 0;
-  max-height: 212px;
+  max-height: 232px;              /* rows up to ~112px: near-square tiles */
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  grid-template-rows: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));   /* all tiles equal height */
   gap: 8px;
 }
 .pain-sensation {
@@ -366,12 +373,13 @@
   justify-content: center;
   gap: 6px;
 }
-.pain-sensation .sensation-icon { width: 48px; height: 48px; flex: 0 0 auto; }
+.pain-sensation .sensation-icon { width: 44px; height: 44px; flex: 0 0 auto; }
 .pain-sensation-label {
   font-size: 14px;
   font-weight: bold;
   line-height: 1.15;
   text-align: center;
+  text-wrap: balance;            /* "Sharp / stabbing" wraps into 2 even lines */
 }
 .pain-sensation[aria-pressed="true"] {
   background: var(--pain-soft);
@@ -555,10 +563,24 @@
 }
 
 /* Short landscape screens (e.g. 1366×768): slightly smaller pictograms */
-@media (max-height: 780px) and (min-height: 561px) and (orientation: landscape) {
-  .pain-sensation { gap: 3px; padding: 3px; }
-  .pain-sensation .sensation-icon { width: 40px; height: 40px; }
-  .pain-sensation-label { font-size: 13px; }
+/* Short landscape screens (1280×800 minus browser bars, 1366×768): keep
+   all 8 tiles visible by using a slightly smaller pictogram and label */
+@media (max-height: 760px) and (min-height: 561px) and (orientation: landscape) {
+  .pain-sensation { gap: 2px; padding: 3px; }
+  .pain-sensation .sensation-icon { width: 36px; height: 36px; }
+  .pain-sensation-label { font-size: 13px; line-height: 1.1; }
+}
+/* Very short landscape viewports (e.g. 1280×800 screen minus browser bars):
+   everything can't fit, so let the page scroll a little instead of
+   squeezing the tiles; the summary bar sticks to the bottom. */
+@media (max-height: 720px) and (min-height: 561px) and (orientation: landscape) {
+  .pain { height: auto; }
+  .pain-main {
+    height: calc(var(--vh) - var(--header-h) - var(--toolbar-h) - 3 * var(--pad));
+    min-height: 470px;
+  }
+  .pain-sensations-grid { flex: none; max-height: none; grid-template-rows: repeat(2, minmax(86px, 1fr)); }
+  .pain-summary { position: sticky; bottom: 0; z-index: 5; }
 }
 
 @media (max-width: 700px) {
