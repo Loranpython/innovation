@@ -16,6 +16,7 @@ import { faceSvg } from "./pain-faces.js";
 import { SENSATIONS } from "./sensation-icons.js";
 import { regionName } from "./body-regions.js";
 import { createBodyMap, fitMarkers, markerSvg } from "./body-map.js";
+import { headIcon } from "./body-details.js";
 
 export function createOverlay(root) {
   let overlay = null;
@@ -111,16 +112,20 @@ export function openReview({ overlay, t, store, viewLabel, onSend, reviewView = 
   ]);
   levelBlock.insertAdjacentHTML("beforeend", faceSvg(worst));
 
-  const viewButtons = ["front", "back"].map((name) => el("button", {
-    type: "button",
-    class: "pain-review-view",
-    "aria-pressed": String(name === view),
-    "aria-label": viewLabel(name),
-    onClick: () => {
-      openReview({ overlay, t, store, viewLabel, onSend, reviewView: name });
-      document.querySelector(".pain-review-view[aria-pressed='true']")?.focus();
-    },
-  }, [viewLabel(name)]));
+  const viewButtons = ["front", "back"].map((name) => {
+    const button = el("button", {
+      type: "button",
+      class: "pain-review-view",
+      "aria-pressed": String(name === view),
+      "aria-label": viewLabel(name),
+      onClick: () => {
+        openReview({ overlay, t, store, viewLabel, onSend, reviewView: name });
+        document.querySelector(".pain-review-view[aria-pressed='true']")?.focus();
+      },
+    }, [t(name === "front" ? "pain.viewFrontLabel" : "pain.viewBackLabel")]);
+    button.insertAdjacentHTML("afterbegin", headIcon(name));
+    return button;
+  });
 
   const map = el("div", { class: "pain-review-map" }, [createBodyMap({ view, spots, t })]);
 

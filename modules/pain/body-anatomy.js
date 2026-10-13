@@ -24,18 +24,23 @@ export function anatomyMarkup(view) {
       `M124 ${y}C136 ${y - 5} ${x2} ${y - 8} ${x2} ${y + 1}C${x2} ${y + 9} 134 ${y + 12} 124 ${y + 7}`;
   }).join(" ");
   // Vertebrae: 18 short lines down the spine.
-  const vertebrae = Array.from({ length: 18 }, (_, i) => `M116 ${125 + i * 7}h8`).join(" ");
+  const vertebrae = Array.from({ length: 18 }, (_, i) => `M117 ${125 + i * 7}h6`).join(" ");
 
-  const bones = `
-    <g class="anatomy-bones">
-      <path d="M120 120Q108 111 91 120 M120 120Q132 111 149 120 M120 119V252"/>
-      <path d="${ribs}"/>
-      <path d="${vertebrae}"/>
+  // Bones on both views: pelvis, arm and leg bones.
+  const sharedBones = `
       <path d="M114 255C104 250 89 249 85 266C82 277 91 292 101 291C108 291 114 277 120 273C126 277 132 291 139 291C149 292 158 277 155 266C151 249 136 250 126 255 M114 255Q114 268 120 273Q126 268 126 255"/>
       <path d="M65 137L53 197 M175 137L187 197 M51 211L36 265 M57 211L43 266 M189 211L204 265 M183 211L197 266 M94 303L96 398 M146 303L144 398 M91 430L92 514 M101 430L97 510 M149 430L148 514 M139 430L143 510"/>
-      <ellipse class="anatomy-kneecap" cx="96" cy="414" rx="7" ry="9"/>
-      <ellipse class="anatomy-kneecap" cx="144" cy="414" rx="7" ry="9"/>
-      <path d="M36 278L31 295 M41 280L38 298 M204 278L209 295 M199 280L202 298 M90 533L79 552 M95 534L86 553 M99 534L95 553 M102 534L104 553 M150 533L161 552 M145 534L154 553 M141 534L145 553 M138 534L136 553 M78 558l2 5 M86 558l1 6 M94 558l1 6 M102 557l2 6 M108 557l1 6 M162 558l-2 5 M154 558l-1 6 M146 558l-1 6 M138 557l-2 6 M132 557l-1 6"/>
+      <path d="M36 278L31 295 M41 280L38 298 M204 278L209 295 M199 280L202 298"/>`;
+  // Front only: collarbones, breastbone + ribs, toe bones (kneecaps are in body-details.js).
+  const frontBones = `
+      <path d="M120 120Q108 111 91 120 M120 120Q132 111 149 120 M120 119V252"/>
+      <path d="${ribs}"/>
+      <path d="M90 533L79 552 M95 534L86 553 M99 534L95 553 M102 534L104 553 M150 533L161 552 M145 534L154 553 M141 534L145 553 M138 534L136 553 M78 558l2 5 M86 558l1 6 M94 558l1 6 M102 557l2 6 M108 557l1 6 M162 558l-2 5 M154 558l-1 6 M146 558l-1 6 M138 557l-2 6 M132 557l-1 6"/>`;
+  // Back only: the vertebrae along the spine (the spine line is in body-details.js).
+  const backBones = `
+      <path d="${vertebrae}"/>`;
+  const bones = `
+    <g class="anatomy-bones">${sharedBones}${view === "front" ? frontBones : backBones}
     </g>`;
 
   // Arm and leg muscles: the same on both views.

@@ -17,6 +17,8 @@
   --pain-soft: #f6dcd4;            /* selected region / selected button */
   --pain-body-fill: #e6e3dc;
   --pain-body-stroke: #8c8a84;
+  --body-hair: #6f6a62;            /* hair on the back of the head (back view) */
+  --pain-figure-bg: var(--color-surface);   /* behind the figure (hides the toes under the heels) */
   --pain-closeup-bg: #ecebe6;
   --pain-overlay-bg: rgba(27, 27, 27, 0.6);   /* dims the screen behind a dialog */
   --pain-spot-unset: #c9c7c1;                  /* marker without a level (?) */
@@ -111,8 +113,12 @@
   gap: 4px;
 }
 .pain-view-label {
-  font-size: 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 22px;
   font-weight: bold;
+  letter-spacing: 0.04em;
 }
 .pain-view-map {
   flex: 1 1 auto;
@@ -146,15 +152,37 @@
   stroke: var(--pain-accent);
   stroke-width: 1.8;
 }
-.body-detail {
+/* Front/back details (body-details.js): decorative, never in the way of a tap */
+.body-details {
   fill: none;
   stroke: var(--pain-body-stroke);
-  stroke-width: 1;
+  stroke-width: 1.1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
   pointer-events: none;
 }
+.body-details .detail-dot { fill: var(--pain-body-stroke); stroke: none; }
+.detail-face { stroke-width: 1.4; }
+.detail-ears { stroke-width: 1.2; }
+.detail-hair { fill: var(--body-hair); stroke: var(--body-hair); stroke-width: 1.2; }
+.detail-hair-strands { stroke: var(--pain-body-fill); stroke-opacity: 0.3; stroke-width: 1; }
+.detail-heel-mask { fill: var(--pain-figure-bg); stroke: none; }
+.detail-heel { fill: var(--pain-body-fill); stroke: none; }
+.detail-heel-line { stroke-width: 1.2; }
+.body-svg.is-small .detail-fine { display: none; }
+/* A selected foot keeps its highlight under the drawn heel */
+.body-svg:has([data-draw-id="right_foot"].is-selected) .detail-heel[data-foot="right_foot"],
+.body-svg:has([data-draw-id="left_foot"].is-selected) .detail-heel[data-foot="left_foot"] { fill: var(--pain-soft); }
+
+/* Small head pictogram next to FRONT / BACK */
+.head-icon { flex: none; }
+.head-icon-skin { fill: var(--pain-body-fill); stroke: var(--color-text); stroke-width: 1.5; }
+.head-icon-hair { fill: var(--body-hair); stroke: var(--color-text); stroke-width: 1.5; }
+.head-icon-dot { fill: var(--color-text); }
+.head-icon-line { fill: none; stroke: var(--color-text); stroke-width: 1.5; stroke-linecap: round; }
 
 /* Anatomy: faint and never in the way of a tap */
-.body-anatomy { pointer-events: none; opacity: 0.85; }
+.body-anatomy { pointer-events: none; opacity: 0.6; }
 .anatomy-bones { fill: var(--pain-anatomy-bone); stroke: var(--pain-anatomy-bone-outline); stroke-width: 2.2; opacity: 0.45; }
 .anatomy-bones path { fill: none; }
 .anatomy-muscles { fill: var(--pain-anatomy-muscle); fill-opacity: 0.08; stroke: var(--pain-anatomy-muscle); stroke-opacity: 0.22; stroke-width: 0.8; }
@@ -215,6 +243,7 @@
   stroke-linejoin: miter;
 }
 .pain-closeup-map {
+  --pain-figure-bg: var(--pain-closeup-bg);
   flex: 1 1 auto;
   min-height: 0;
   background: var(--pain-closeup-bg);
@@ -490,7 +519,14 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
 }
-.pain-review-view { min-height: 56px; }
+.pain-review-view {
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-weight: bold;
+}
 .pain-review-view + .pain-review-view { border-left: none; }
 .pain-review-view[aria-pressed="true"] {
   background: var(--color-text);

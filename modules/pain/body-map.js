@@ -9,6 +9,7 @@
     read-only   no callbacks: e.g. the figure in the review step
 
   Drawn on top of the regions, in this order:
+    anatomy overlay  ->  front/back details (body-details.js)  ->
     radiation arrows (dashed, level colour)  ->  numbered spot markers
 
   Markers, badges and arrow heads keep the SAME SIZE ON SCREEN in every
@@ -18,8 +19,9 @@
   Coordinates of spots are in the 240 × 580 drawing box (body-regions.js).
 */
 
-import { VIEWBOX, REGIONS, FACE_DETAILS, findRegion, toPatientRegion, regionName } from "./body-regions.js";
+import { VIEWBOX, REGIONS, findRegion, toPatientRegion, regionName } from "./body-regions.js";
 import { anatomyMarkup } from "./body-anatomy.js";
+import { detailsMarkup } from "./body-details.js";
 import { SENSATIONS } from "./sensation-icons.js";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -29,6 +31,10 @@ const SIZES = {
   whole: { r: 11, font: 12, badge: 14 },
   closeup: { r: 16, font: 16, badge: 20 },
 };
+
+// Below this many screen px per drawing unit the fine details (toes, hair
+// strands) become noise and are hidden (.is-small in pain.css).
+const SMALL_SCALE = 0.7;
 
 // Levels whose colour is light enough for dark text (others get white text).
 const DARK_TEXT_LEVELS = new Set([3, 4, 5, 6]);
@@ -152,7 +158,7 @@ export function createBodyMap({ view, spots, selectedSpotId = null, highlightMis
   svg.innerHTML =
     regionsMarkup +
     anatomyMarkup(view) +
-    `<path class="body-detail" d="${FACE_DETAILS[view]}"/>` +
+    detailsMarkup(view) +
     `<g class="pain-rays">${rays}</g>` +
     `<g class="pain-spots">${markers}</g>`;
   return svg;
@@ -168,6 +174,7 @@ export function fitMarkers(root) {
     const ctm = svg.getScreenCTM();
     if (!ctm || !ctm.a) continue;
     const k = 1 / ctm.a;                       // drawing units per screen pixel
+    svg.classList.toggle("is-small", ctm.a < SMALL_SCALE);
     const placed = [];                          // marker centres in px
     const spread = svg.dataset.mode === "whole";
     for (const item of svg.querySelectorAll(".pain-fixed")) {

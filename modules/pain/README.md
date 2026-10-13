@@ -19,6 +19,7 @@ So someone can report a *sharp* headache of 8/10, a *numb* hand of 3/10, and low
 | `pain-state.js` | **The state** + all changes + Undo. No DOM code |
 | `body-regions.js` | Region shapes + zoom boxes, `toPatientRegion()`, names |
 | `body-anatomy.js` | Faint anatomy overlay (`SHOW_ANATOMY = false` hides it) |
+| `body-details.js` | Front/back cues (face, toes vs. hair, spine, buttocks, heels) + the FRONT/BACK head pictogram. Decorative only: never changes taps |
 | `body-map.js` | SVG figure: regions, numbered markers, badges, radiation arrows, hit testing |
 | `drag.js` | Dragging feelings onto the body and moving markers (pointer events) |
 | `spot-editor.js` | Right panel: the palette, or the editor of the selected spot |

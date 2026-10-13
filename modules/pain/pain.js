@@ -24,6 +24,7 @@
 import { createScreen, el } from "../../js/ui.js";
 import { createPainStore, ZOOM_MIN, ZOOM_MAX, ZOOM_STEP } from "./pain-state.js";
 import { createBodyMap, fitMarkers, screenToSvg, regionAtPoint, markerAtPoint } from "./body-map.js";
+import { headIcon } from "./body-details.js";
 import { findRegion, toPatientRegion, regionName, englishRegionLabel } from "./body-regions.js";
 import { faceEmoji } from "./pain-faces.js";
 import { SENSATIONS, radiatingIcon } from "./sensation-icons.js";
@@ -64,6 +65,8 @@ export function render(container, ctx) {
   const store = createPainStore();
   const { state } = store;
   const viewLabel = (view) => t(view === "front" ? "pain.viewFront" : "pain.viewBack");
+  // Big FRONT / BACK label above the figures and in the close-up title.
+  const viewTitle = (view) => t(view === "front" ? "pain.viewFrontLabel" : "pain.viewBackLabel");
 
   // ---------------------------------------------------------------- taps on the body
   /** A body part was tapped (whole view or close-up) at drawing point x, y. */
@@ -242,7 +245,7 @@ export function render(container, ctx) {
         el("div", { class: "pain-closeup-map" }, [map]),
         el("p", { class: "pain-closeup-title" }, [
           el("strong", {}, [regionName(toPatientRegion(drawId, view), t)]),
-          ` · ${viewLabel(view)} — ${t("pain.closeupHint")}`,
+          ` · ${viewTitle(view)} — ${t("pain.closeupHint")}`,
         ]),
       ]);
     } else {
@@ -250,8 +253,10 @@ export function render(container, ctx) {
         el("div", { class: "pain-views" }, ["front", "back"].map((view) => {
           const map = createBodyMap({ ...common, view });
           wireSvg(map, false);
+          const label = el("h2", { class: "pain-view-label" }, [viewTitle(view)]);
+          label.insertAdjacentHTML("afterbegin", headIcon(view));
           return el("div", { class: "pain-view" }, [
-            el("h2", { class: "pain-view-label" }, [viewLabel(view)]),
+            label,
             el("div", { class: "pain-view-map" }, [map]),
           ]);
         })),

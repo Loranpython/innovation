@@ -47,12 +47,6 @@ export const REGIONS = [
   { drawId: "left_foot", box: [110, 496, 72, 98], path: "M155 521C158 530 160 540 161 549L162 555L163 560Q161 566 157 561L156 555L156 561Q153 567 150 560L149 554L149 562Q146 568 143 560L142 555L142 563Q139 569 136 560L135 555L135 564Q131 571 129 561L130 552C131 542 134 531 139 521Z" },
 ];
 
-/** Face details: eyes, nose and mouth on the front; hairline on the back. */
-export const FACE_DETAILS = {
-  front: "M109 45h2 M129 45h2 M119 49v9l3 1 M112 69q8 4 16 0",
-  back: "M99 38q21-16 42 0",
-};
-
 // Central body parts have their own name on the back view.
 const BACK_NAMES = {
   head: "back_of_head",
