@@ -34,7 +34,9 @@ export function render(container, ctx) {
   const section = el("section", { class: "sent" }, [
     el("div", { class: "sent-icons icon", "aria-hidden": "true" }, [
       mark,
-      result ? el("span", {}, [result.icon]) : null,
+      result && result.type !== "pain"
+        ? el("span", {}, [result.icon])
+        : null,
     ]),
     message,
     hint,
