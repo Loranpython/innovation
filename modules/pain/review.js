@@ -18,7 +18,7 @@ import { faceSvg } from "./pain-faces.js";
 import { regionName } from "./body-regions.js";
 import { createBodyMap, fitMarkers, markerSvg } from "./body-map.js";
 import { headIcon } from "./body-details.js";
-import { sortSymptoms, symptomIcon } from "../symptoms/symptoms.js";
+import { sortSymptoms, symptomIconContent } from "../symptoms/symptoms.js";
 
 export function createOverlay(root) {
   let overlay = null;
@@ -102,7 +102,7 @@ function symptomsBlock(symptoms, t) {
   return [
     el("h3", { class: "pain-review-heading" }, [t("pain.howYouFeel")]),
     el("ul", { class: "pain-review-symptoms" }, symptoms.map((id) => el("li", {}, [
-      el("span", { class: "icon", "aria-hidden": "true" }, [symptomIcon(id)]),
+      el("span", { class: "icon", "aria-hidden": "true" }, [symptomIconContent(id)]),
       el("span", {}, [t(`symptom.${id}`)]),
     ]))),
   ];

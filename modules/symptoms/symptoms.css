@@ -29,3 +29,12 @@
   font-size: 28px;
   font-weight: bold;
 }
+
+/* Drawn icons (dizzy): as big as the colour emoji next to them, which
+   render wider than 1em */
+.symptom-svg {
+  display: inline-block;
+  width: 1.3em;
+  height: 1.3em;
+  vertical-align: -0.3em;
+}
