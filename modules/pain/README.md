@@ -1,35 +1,46 @@
 # Pain module (`#/pain`)
 
-**Owner:** pain teammate. Only edit files in this folder, plus `pain.*` keys in `js/strings.js` and the pain formatter in `nurse.html`.
+**Owner:** pain teammate. Only edit files in this folder, plus `pain.*` keys in `js/strings.js` and the pain formatter in `js/nurse.js` (`painDetails()`).
 
 The patient places **pain spots** on a body map. Every spot has its **own**:
 
 - location (front/back, region, exact point)
 - **pain level** 0–10 (required)
-- **sensation types** (0 or more of 8 pictograms)
 - optional **radiation**: places the pain spreads to
 
-So someone can report a *sharp* headache of 8/10, a *numb* hand of 3/10, and lower-back pain of 6/10 that *spreads* down the right leg, all at once. The nurse sees the worst level first.
+So someone can report a headache of 8/10 and lower-back pain of 6/10 that *spreads* down the right leg, all at once. The nurse sees the worst level first.
+
+General symptoms that have no place on the body (nauseous, anxious, dizzy) are **not** pain. They have their own screen, `#/symptoms` (`modules/symptoms/`), opened with the big **Other symptoms** button at the top of this screen.
+
+### Why there are no sensation types any more
+
+Earlier versions had eight sensation pictograms (sharp/stabbing, burning, aching, throbbing, shooting, tingling, cramping, numb), with a palette, a "tool-first" armed mode and drag & drop. After clinical feedback from Eivind Kvernø (ICU nurse, simulation-unit supervisor) they were removed: they weren't universal enough and were ambiguous, especially for patients with communication difficulties. Location + level is what the nurse needs to start; the nurse asks the rest in person.
+
+**Older saved notifications** that contain `sensations` are still shown correctly on the nurse dashboard (the `pain.sensation.<id>` labels stay in `js/strings.js` for that).
 
 ## Files
 
 | File | What it does |
 |------|--------------|
-| `pain.js` | Wiring: builds the screen, handles taps/drops, sends the notification |
+| `pain.js` | Wiring: builds the screen, handles taps, sends the notification |
 | `pain-state.js` | **The state** + all changes + Undo. No DOM code |
 | `body-regions.js` | Region shapes + zoom boxes, `toPatientRegion()`, names |
 | `body-anatomy.js` | Faint anatomy overlay (`SHOW_ANATOMY = false` hides it) |
 | `body-details.js` | Front/back cues (face, toes vs. hair, spine, buttocks, heels) + the FRONT/BACK head pictogram. Decorative only: never changes taps |
-| `body-map.js` | SVG figure: regions, numbered markers, badges, radiation arrows, hit testing |
-| `drag.js` | Dragging feelings onto the body and moving markers (pointer events) |
-| `spot-editor.js` | Right panel: the palette, or the editor of the selected spot |
+| `body-map.js` | SVG figure: regions, numbered markers, radiation arrows, hit testing |
+| `drag.js` | Moving markers in the close-up (pointer events) |
+| `spot-editor.js` | Right panel: "Tap where it hurts", or the editor of the selected spot |
 | `level-picker.js` | Faces + square 0–10 slider, reusable for any spot |
-| `summary-bar.js` | Bottom bar: spot chips, Undo, Start over, Review & send |
+| `summary-bar.js` | Spot chips, Undo, Start over, Review & send |
 | `review.js` | Review overlay + "Clear everything?" confirm |
 | `pain-faces.js` | Line faces for 0–10 |
-| `sensation-icons.js` | The 8 sensation pictograms + the "Spreads to…" pictogram |
+| `pain-icons.js` | The "Spreads to" pictogram |
 | `pain.css` | All styles of this screen (colour variables at the top) |
-| `icons-preview.html` | Review page for the pictograms (not linked from the app) |
+
+## Layout
+
+- **Landscape (1280×800):** the front/back figures on the left at **full height** (554 px, was 430 px with the sensation palette). On the right only the hint *or* the spot editor, with the summary (chips, Undo, Start over, Review & send) underneath. No scrolling.
+- **Phone / portrait:** figures, then the panel; the page scrolls and the summary bar sticks to the bottom. The spot editor opens as a bottom sheet.
 
 ## Data model (`pain-state.js`)
 
@@ -42,35 +53,26 @@ state = {
     region,                      // PATIENT-perspective id, e.g. "left_thigh"
     x, y,                        // point in the 240 × 580 drawing
     level: null | 0..10,         // null until chosen
-    sensations: ["sharp", …],
     radiatesTo: [{ view, drawId, region, x, y }]
   }],
-  selectedSpotId, armedSensation,
-  mode: "idle" | "placing" | "radiating",
+  selectedSpotId,
+  mode: "idle" | "radiating",
   history,                       // snapshots for Undo
   closeup, zoom, hint, highlightMissing   // screen state
 }
 ```
 
-Every change goes through a function such as `addSpot`, `setLevel`, `toggleSensation`, `addSensation`, `moveSpot`, `removeSpot`, `addRadiation`, `removeRadiation`, `reset` or `undo`. Changes to the answers push an Undo snapshot. Dragging the slider counts as one step. Then the screen re-renders once.
+Every change goes through a function such as `addSpot`, `setLevel`, `moveSpot`, `removeSpot`, `addRadiation`, `removeRadiation`, `reset` or `undo`. Changes to the answers push an Undo snapshot. Dragging the slider counts as one step. Then the screen re-renders once.
 
-## Two ways to make a spot
+## Making a spot
 
-**A. Feeling first ("tool-first")**, the main flow for patients who can't read:
+Tap a body part to open the close-up, then tap the exact place. A spot is created and its editor opens.
 
-1. Tap a feeling in the palette. It is **armed** (dark tile), and the line above the body says "Now tap where you feel it".
-2. Tap a body part to open the close-up, then tap the exact place. A spot is created with that feeling, and its editor opens.
-3. Or **drag** the feeling onto the body (a ghost icon follows the finger). Dropping it on the body creates a spot right there; dropping it on an existing marker (within ~20px) adds the feeling to that spot. Dropping anywhere else cancels. A feeling is never added twice.
+**Spot editor** (right panel while a spot is selected): number + region, the pain level, **Spreads to →**, **Delete spot** (asks first), and **Done**. Tapping a marker or a chip selects that spot. In the close-up, markers can be **dragged** to move them; the region updates on drop, and a drop outside the body puts the marker back.
 
-**B. Body first:** tap a body part, then tap in the close-up. An empty spot is created, and the patient chooses level and feelings in the editor.
+## Radiating pain ("Spreads to →")
 
-**Spot editor** (right panel while a spot is selected): number + region, the pain level, "What does it feel like here?", **Spreads to…** with its targets (× removes one), **Delete spot** (asks first), and **Done**. Tapping a marker or a chip in the bottom bar selects that spot. In the close-up, markers can be **dragged** to move them; the region updates on drop, and a drop outside the body puts the marker back.
-
-On phones (< 700px) the editor opens as a bottom sheet above the summary bar.
-
-## Radiating pain ("Spreads to…")
-
-1. In the editor, press **Spreads to…**. On the palette the 9th tile does the same; with no spot selected it first asks "First tap the spot where the pain starts".
+1. In the spot editor, press **Spreads to →** (arrow pictogram).
 2. Tap one or more places (whole body or close-up), then press **Done**.
 3. Each target is drawn as a dashed arrow in the spot's level colour, with a small open circle at the target.
 
@@ -78,13 +80,17 @@ On phones (< 700px) the editor opens as a bottom sheet above the summary bar.
 
 ## The left/right rule
 
-**Everything stored or sent uses the PATIENT's left and right.**
+**Everything stored, sent or spoken uses the PATIENT's left and right.**
 
 - The shapes are drawn once. Their `drawId`s describe the **front** view, where the patient faces you, so `right_upper_arm` is on the **left of the screen**.
 - On the **back** view you see the patient's back, so the shape on the left of the screen is their **left** side.
 - `toPatientRegion(drawId, view)` in `body-regions.js` converts it and renames back-view parts (back of head, upper/lower back, buttocks, back of hand).
 
-Never send a `drawId` to the nurse.
+Never send a `drawId` to the nurse. Voice assistance (`js/voice.js`) also says the converted name: tapping the screen-left leg on the back view says "Left lower leg".
+
+## Voice assistance
+
+When voice assistance is on (header toggle or `?voice=1`), the screen says the region that was tapped, "Left thigh. Pain level for this spot" after placing a spot, "Pain level 4" for a face (for the slider only once the finger is lifted), the places the pain spreads to, and a short summary when the review opens.
 
 ## What is sent to the nurse
 
@@ -96,7 +102,7 @@ ctx.sendNotification({
     spots: [{
       number: 2, view: "back", region: "lower_back",
       regionLabel: "Lower back (back)",            // English, patient perspective
-      x: 120, y: 220.3, level: 6, sensations: ["aching"],
+      x: 120, y: 220.3, level: 6,
       radiatesTo: [
         { view: "back", region: "right_thigh", regionLabel: "Right thigh (back)", x: 145.2, y: 340.8 }
       ]
@@ -108,23 +114,16 @@ ctx.navigate("#/sent");
 
 **Review & send** works when there is at least one spot and **every spot has a level**. Pressed too early, it flags the spots without a level (dashed outline) and selects the first one. The 10-second duplicate protection in `js/notifications.js` still applies.
 
-`nurse.html` shows it as:
+The nurse dashboard (`js/nurse.js`, `painDetails()`) shows it as:
 
 ```
-Pain — worst 8/10
- 1. Head (front) — 8/10 — sharp / stabbing
- 2. Lower back (back) — 6/10 — dull ache → spreads to right thigh, right lower leg
- 3. Right hand (front) — 3/10 — numb, pins & needles
+Pain — Worst pain: 8/10                       [HIGH PAIN badge for 7 or more]
+ 1 · Head (front)        8/10
+ 2 · Lower back (back)   6/10
+     → spreads to right thigh, right lower leg
 ```
 
-## How to add a sensation
-
-1. In `sensation-icons.js`, write a function that returns an SVG string. Follow the rules at the top of that file: 48 × 48, stroke 2.5, square caps, a body element + the sensation in `--pain-accent`.
-2. Add `{ id, icon }` to `SENSATIONS`.
-3. Add `"pain.sensation.<id>"` to `en`, `nl` and `no` in `js/strings.js`.
-4. Open `icons-preview.html` (via a local server) and compare it with the others at 40px.
-
-The palette is a 3 × 3 grid (8 feelings + Spreads to). A 9th feeling needs a 4th row or column in `pain.css` (`.pain-palette-grid`).
+Older notifications with sensations read `8/10 · Sharp / stabbing`.
 
 ## How to add or change a body region
 
@@ -134,13 +133,13 @@ The palette is a 3 × 3 grid (8 feelings + Spreads to). A 9th feeling needs a 4t
 
 ## Test checklist
 
-Run `python -m http.server 8000` and open `http://localhost:8000/#/pain`, with `nurse.html` in another tab.
+Run `python -m http.server 8000` and open `http://localhost:8000/#/pain`, with `nurse.html` in another browser.
 
-- Tool-first: tap Sharp, then the head, then tap in the close-up, choose 8, press Done.
-- Drag Numb onto the right hand, choose 3, add Pins & needles. Then drag Burning onto that marker: it is added to the spot, and no new spot appears.
-- Body-first: lower back on the back view, choose 6 and Dull ache, Spreads to, tap the right thigh and right lower leg, Done. Arrows are visible.
+- Head on the front view, tap in the close-up, choose 8, press Done.
+- Lower back on the back view, choose 6, **Spreads to →**, tap the right thigh and right lower leg, Done. Arrows are visible.
 - While "spreading" from a back spot, tap the front view: a hint appears and nothing is added.
 - A spot without a level blocks Review & send, and the flags appear.
 - Undo every kind of action. Move a marker in the close-up: the region updates.
-- On the **back** view, a spot on the left of the screen arrives as `left_…`.
+- On the **back** view, a spot on the left of the screen arrives as `left_…` (and is spoken as "Left …").
+- **Other symptoms** at the top opens `#/symptoms`.
 - 1280×800 fits without scrolling; 390×844 works with the sticky bar.

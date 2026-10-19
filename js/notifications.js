@@ -25,6 +25,9 @@
   Double-tap protection: the same request TYPE cannot be sent again within
   10 seconds. The promise then gives { ok: false, duplicate: true } and the
   confirmation screen says "Already sent, the nurse is on the way".
+  Not after a FAILED online send (offline warning): then a retry is allowed
+  at once, because the nurse did not get the first one.
+  (Food has an extra 30-minute limit: see modules/food-drink/food-cooldown.js.)
 */
 
 import * as backend from "./backend.js";
@@ -75,7 +78,14 @@ export function sendNotification({ type, details = {}, icon }) {
   lastSentAt[type] = now;
 
   const request = { patient: patientInfo.patient, room: patientInfo.room, type, details };
-  const done = deliver(request, shownIcon);
+  const done = deliver(request, shownIcon).then((outcome) => {
+    // Online send failed (fell back to this device only): the nurse did NOT
+    // get it, so a retry must not be answered with "Already sent".
+    if (outcome.mode === "local" && backend.isConfigured() && lastSentAt[type] === now) {
+      delete lastSentAt[type];
+    }
+    return outcome;
+  });
   lastResult = { ok: null, duplicate: false, type, icon: shownIcon, done };
   return done;
 }

@@ -20,7 +20,7 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: safe center;
   gap: var(--pad);
 }
 
@@ -138,6 +138,7 @@
   .symptom-tile .tile-icon { font-size: calc(var(--tile-h) * 0.5); }
   .symptom-tile .tile-label { font-size: 28px; }
   .symptoms-bar { flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 8px; }
+  .symptoms-hint { font-size: 17px; line-height: 1.25; }
   .symptoms-review-button { width: 100%; }
   .symptoms-review-actions .big-button { flex: 1 1 auto; }
 }

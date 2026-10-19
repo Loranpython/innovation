@@ -41,6 +41,9 @@ export function navigate(hash, { replace = false } = {}) {
 export function startRouter(container, ctx) {
   window.addEventListener("hashchange", () => showRoute(container, ctx));
   showRoute(container, ctx);
+  // Load the confirmation screen now: if the network drops later, it must
+  // still be able to show the offline warning after a request.
+  routes["#/sent"]().catch((error) => console.warn("[router] could not preload #/sent", error));
 }
 
 async function showRoute(container, ctx) {

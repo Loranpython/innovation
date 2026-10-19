@@ -106,7 +106,7 @@
   font-size: 22px;
   font-weight: bold;
 }
-.pain-other-symptoms .icon { font-size: 32px; letter-spacing: 2px; }
+.pain-other-symptoms .icon { font-size: 32px; letter-spacing: 2px; white-space: nowrap; }
 
 /* A white panel with our 2px border */
 .pain-box {
@@ -747,7 +747,12 @@
   .pain-faces { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .pain-summary { gap: 6px; }
   .pain-summary-actions { width: 100%; }
-  .pain-summary-actions button { min-height: 56px; padding: 0 12px; white-space: nowrap; }
+  .pain-summary-actions button { min-height: 56px; padding: 0 8px; line-height: 1.1; }
   .pain-summary-actions .big-button { flex: 1 1 auto; font-size: 20px; white-space: normal; line-height: 1.1; padding: 0 8px; }
   .pain-dialog { padding: 16px; }
+  /* Long words ("ACHTERKANT", "Andere klachten") must fit on a phone */
+  .pain-views { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .pain-view-label { font-size: 17px; gap: 4px; letter-spacing: 0; }
+  .pain-other-symptoms { font-size: 20px; gap: 8px; padding: 0 12px; }
+  .pain-other-symptoms .icon { font-size: 26px; }
 }
