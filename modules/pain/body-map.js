@@ -12,7 +12,7 @@
     anatomy overlay  ->  front/back details (body-details.js)  ->
     radiation arrows (dashed, level colour)  ->  numbered spot markers
 
-  Markers, badges and arrow heads keep the SAME SIZE ON SCREEN in every
+  Markers and arrow heads keep the SAME SIZE ON SCREEN in every
   view: they are drawn in screen pixels and scaled by fitMarkers() after
   the SVG is on the page (and again when the panel resizes).
 
@@ -22,14 +22,13 @@
 import { VIEWBOX, REGIONS, findRegion, toPatientRegion, regionName } from "./body-regions.js";
 import { anatomyMarkup } from "./body-anatomy.js";
 import { detailsMarkup } from "./body-details.js";
-import { SENSATIONS } from "./sensation-icons.js";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
 // Marker sizes in screen pixels.
 const SIZES = {
-  whole: { r: 11, font: 12, badge: 14 },
-  closeup: { r: 16, font: 16, badge: 20 },
+  whole: { r: 11, font: 12 },
+  closeup: { r: 16, font: 16 },
 };
 
 // Below this many screen px per drawing unit the fine details (toes, hair
@@ -72,29 +71,11 @@ export function closeupViewBox(box, zoom) {
   return [x + (w - w / zoom) / 2, y + (h - h / zoom) / 2, w / zoom, h / zoom];
 }
 
-/** Accessible description of a spot, e.g. "Spot 2: Right hand (Front), pain 3 of 10, Numb". */
+/** Accessible description of a spot, e.g. "Spot 2: Right hand (Front), pain 3 of 10". */
 export function spotDescription(spot, t) {
   const view = t(spot.view === "front" ? "pain.viewFront" : "pain.viewBack");
   const level = spot.level === null ? t("pain.levelMissing") : t("pain.levelOutOf", { n: spot.level });
-  const parts = [`${regionName(spot.region, t)} (${view})`, level,
-    ...spot.sensations.map((s) => t(`pain.sensation.${s}`))];
-  return t("pain.spotAria", { n: spot.number, region: parts.join(", ") });
-}
-
-function badgeMarkup(spot, size) {
-  if (spot.sensations.length === 0) return "";
-  const shown = spot.sensations.slice(0, 2);
-  const extra = spot.sensations.length - shown.length;
-  const pad = 2;
-  const width = shown.length * size + (shown.length - 1) * 2 + pad * 2 + (extra ? size * 0.9 : 0);
-  const icons = shown.map((id, i) => {
-    const icon = SENSATIONS.find((s) => s.id === id)?.icon() ?? "";
-    return icon.replace("<svg ", `<svg x="${pad + i * (size + 2)}" y="${pad}" width="${size}" height="${size}" `);
-  }).join("");
-  const more = extra
-    ? `<text class="pain-spot-more" x="${width - pad - 1}" y="${pad + size / 2}" dy="0.36em" text-anchor="end" font-size="${size * 0.62}">+${extra}</text>`
-    : "";
-  return `<g class="pain-spot-badge"><rect x="0" y="0" width="${width}" height="${size + pad * 2}"/>${icons}${more}</g>`;
+  return t("pain.spotAria", { n: spot.number, region: `${regionName(spot.region, t)} (${view}), ${level}` });
 }
 
 /**
@@ -144,7 +125,6 @@ export function createBodyMap({ view, spots, selectedSpotId = null, highlightMis
       `<rect class="pain-spot-ring" x="${-ring}" y="${-ring}" width="${ring * 2}" height="${ring * 2}"/>` +
       `<circle class="pain-spot-dot" r="${size.r}" style="fill:${fill}"/>` +
       `<text class="pain-spot-number" dy="0.36em" text-anchor="middle" font-size="${size.font}" style="fill:${text}">${spot.level === null ? "?" : spot.number}</text>` +
-      `<g transform="translate(${size.r + 3} ${-size.r - 4})">${badgeMarkup(spot, size.badge)}</g>` +
       `</g>`;
   }).join("");
 
@@ -165,7 +145,7 @@ export function createBodyMap({ view, spots, selectedSpotId = null, highlightMis
 }
 
 /**
- * Give markers, badges and arrow heads their screen size, and push
+ * Give markers and arrow heads their screen size, and push
  * overlapping markers apart (whole view only; the data stays exact).
  * Call after the SVG is in the page, and when it resizes.
  */
@@ -220,17 +200,4 @@ export function regionAtPoint(clientX, clientY) {
     return { svg, view: svg.dataset.view, drawId: region.dataset.drawId, ...screenToSvg(svg, clientX, clientY) };
   }
   return null;
-}
-
-/** The spot marker within `radius` screen px of a point (closest), or null. */
-export function markerAtPoint(root, clientX, clientY, radius = 20) {
-  let best = null;
-  for (const dot of root.querySelectorAll(".pain-spot .pain-spot-dot")) {
-    const rect = dot.getBoundingClientRect();
-    const distance = Math.hypot(rect.left + rect.width / 2 - clientX, rect.top + rect.height / 2 - clientY);
-    if (distance <= Math.max(radius, rect.width / 2) && (!best || distance < best.distance)) {
-      best = { spotId: dot.parentElement.dataset.spotId, distance };
-    }
-  }
-  return best?.spotId ?? null;
 }

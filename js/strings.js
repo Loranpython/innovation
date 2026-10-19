@@ -16,6 +16,7 @@
   fixed pattern, because the nurse page builds them from notification data:
       food.<item id>   drink.<item id>
       pain.region.<region id>   pain.sensation.<sensation id>
+  (food items and pain sensations are only used to show OLDER requests.)
 */
 
 export const STRINGS = {
@@ -59,7 +60,7 @@ export const STRINGS = {
     "pain.levelNotSet": "Not selected",
     "pain.noPain": "No pain",
     "pain.worstPain": "Worst pain",
-    "pain.sensationHeading": "What does it feel like?",
+    // Only for OLDER pain notifications on the nurse dashboard (no longer on the patient screen)
     "pain.sensation.sharp": "Sharp / stabbing",
     "pain.sensation.burning": "Burning",
     "pain.sensation.aching": "Dull ache",
@@ -70,8 +71,6 @@ export const STRINGS = {
     "pain.sensation.numb": "Numb",
     "pain.summaryArea": "1 area",
     "pain.summaryAreas": "{n} areas",
-    "pain.summarySensation": "1 sensation",
-    "pain.summarySensations": "{n} sensations",
     "pain.summaryLevel": "Pain level",
     "pain.startOver": "Start over",
     "pain.confirmTitle": "Clear everything?",
@@ -80,18 +79,15 @@ export const STRINGS = {
     "pain.reviewSend": "Review & send",
     "pain.reviewTitle": "Check and send",
     "pain.reviewAreas": "Where",
-    "pain.reviewSensations": "Feels like",
     "pain.noAreas": "No location marked",
-    "pain.noSensations": "No sensation chosen",
     "pain.change": "Change",
     "pain.sendToNurse": "Send to nurse",
-    // Pain v3: spots, tool-first, radiation
-    "pain.armedHint": "Now tap where you feel it",
+    // Pain v3: spots, radiation
     "pain.radiateHint": "Tap where the pain spreads to (you can tap several places), then press Done",
     "pain.radiatePickOrigin": "First tap the spot where the pain starts",
     "pain.radiateSameSide": "Radiation must stay on the same side of the body",
     "pain.spreadsTo": "Spreads to",
-    "pain.spreadsToButton": "Spreads to…",
+    "pain.spreadsToButton": "Spreads to →",
     "pain.removeTarget": "Remove {place}",
     "pain.deleteSpot": "Delete spot",
     "pain.deleteSpotConfirm": "Delete spot {n}?",
@@ -103,12 +99,9 @@ export const STRINGS = {
     "pain.worstPainShort": "Worst pain",
     "pain.needsLevel": "Every spot needs a pain level",
     "pain.spotLevelHeading": "Pain level for this spot",
-    "pain.spotSensationHeading": "What does it feel like here?",
-    "pain.paletteHint": "Tap a feeling, then tap where you feel it. Or tap the body first.",
     "pain.noSpots": "No pain spots yet",
     "pain.undoAction": "Undo",
     "pain.nurseWorst": "worst {n}/10",
-    "pain.dropHint": "Drop it on the body",
     // Pain body regions, PATIENT perspective (see modules/pain/body-regions.js)
     "pain.region.head": "Head",
     "pain.region.neck": "Neck",
@@ -248,7 +241,7 @@ export const STRINGS = {
     "pain.levelNotSet": "Niet gekozen",
     "pain.noPain": "Geen pijn",
     "pain.worstPain": "Ergste pijn",
-    "pain.sensationHeading": "Hoe voelt het?",
+    // Only for OLDER pain notifications on the nurse dashboard (no longer on the patient screen)
     "pain.sensation.sharp": "Stekend",
     "pain.sensation.burning": "Brandend",
     "pain.sensation.aching": "Zeurend",
@@ -259,8 +252,6 @@ export const STRINGS = {
     "pain.sensation.numb": "Verdoofd",
     "pain.summaryArea": "1 plaats",
     "pain.summaryAreas": "{n} plaatsen",
-    "pain.summarySensation": "1 gevoel",
-    "pain.summarySensations": "{n} gevoelens",
     "pain.summaryLevel": "Pijnscore",
     "pain.startOver": "Opnieuw beginnen",
     "pain.confirmTitle": "Alles wissen?",
@@ -269,18 +260,15 @@ export const STRINGS = {
     "pain.reviewSend": "Nakijken & versturen",
     "pain.reviewTitle": "Nakijken en versturen",
     "pain.reviewAreas": "Waar",
-    "pain.reviewSensations": "Voelt als",
     "pain.noAreas": "Geen plaats aangeduid",
-    "pain.noSensations": "Geen gevoel gekozen",
     "pain.change": "Wijzigen",
     "pain.sendToNurse": "Naar verpleegkundige sturen",
-    // Pain v3: spots, tool-first, radiation
-    "pain.armedHint": "Tik nu waar u het voelt",
+    // Pain v3: spots, radiation
     "pain.radiateHint": "Tik waar de pijn naartoe uitstraalt (meerdere plaatsen kan), druk dan op Klaar",
     "pain.radiatePickOrigin": "Tik eerst op de plek waar de pijn begint",
     "pain.radiateSameSide": "Uitstraling moet aan dezelfde kant van het lichaam blijven",
     "pain.spreadsTo": "Straalt uit naar",
-    "pain.spreadsToButton": "Straalt uit naar…",
+    "pain.spreadsToButton": "Straalt uit naar →",
     "pain.removeTarget": "{place} verwijderen",
     "pain.deleteSpot": "Plek verwijderen",
     "pain.deleteSpotConfirm": "Plek {n} verwijderen?",
@@ -292,12 +280,9 @@ export const STRINGS = {
     "pain.worstPainShort": "Ergste pijn",
     "pain.needsLevel": "Elke plek heeft een pijnscore nodig",
     "pain.spotLevelHeading": "Pijnscore voor deze plek",
-    "pain.spotSensationHeading": "Hoe voelt het hier?",
-    "pain.paletteHint": "Tik op een gevoel en tik dan waar u het voelt. Of tik eerst op het lichaam.",
     "pain.noSpots": "Nog geen pijnplekken",
     "pain.undoAction": "Ongedaan maken",
     "pain.nurseWorst": "ergste {n}/10",
-    "pain.dropHint": "Laat los op het lichaam",
     // Pain body regions, PATIENT perspective (see modules/pain/body-regions.js)
     "pain.region.head": "Hoofd",
     "pain.region.neck": "Hals",
@@ -436,7 +421,7 @@ export const STRINGS = {
     "pain.levelNotSet": "Ikke valgt",
     "pain.noPain": "Ingen smerte",
     "pain.worstPain": "Verst tenkelig",
-    "pain.sensationHeading": "Hvordan kjennes det?",
+    // Only for OLDER pain notifications on the nurse dashboard (no longer on the patient screen)
     "pain.sensation.sharp": "Stikkende",
     "pain.sensation.burning": "Brennende",
     "pain.sensation.aching": "Verkende",
@@ -447,8 +432,6 @@ export const STRINGS = {
     "pain.sensation.numb": "Nummen",
     "pain.summaryArea": "1 sted",
     "pain.summaryAreas": "{n} steder",
-    "pain.summarySensation": "1 følelse",
-    "pain.summarySensations": "{n} følelser",
     "pain.summaryLevel": "Smertenivå",
     "pain.startOver": "Start på nytt",
     "pain.confirmTitle": "Fjerne alt?",
@@ -457,18 +440,15 @@ export const STRINGS = {
     "pain.reviewSend": "Se over og send",
     "pain.reviewTitle": "Se over og send",
     "pain.reviewAreas": "Hvor",
-    "pain.reviewSensations": "Kjennes som",
     "pain.noAreas": "Ingen sted markert",
-    "pain.noSensations": "Ingen følelse valgt",
     "pain.change": "Endre",
     "pain.sendToNurse": "Send til sykepleier",
-    // Pain v3: spots, tool-first, radiation
-    "pain.armedHint": "Trykk nå der du kjenner det",
+    // Pain v3: spots, radiation
     "pain.radiateHint": "Trykk der smerten stråler ut (du kan trykke flere steder), og trykk så Ferdig",
     "pain.radiatePickOrigin": "Trykk først på stedet der smerten starter",
     "pain.radiateSameSide": "Utstrålingen må være på samme side av kroppen",
     "pain.spreadsTo": "Stråler ut til",
-    "pain.spreadsToButton": "Stråler ut til…",
+    "pain.spreadsToButton": "Stråler ut til →",
     "pain.removeTarget": "Fjern {place}",
     "pain.deleteSpot": "Slett punkt",
     "pain.deleteSpotConfirm": "Slette punkt {n}?",
@@ -480,12 +460,9 @@ export const STRINGS = {
     "pain.worstPainShort": "Verste smerte",
     "pain.needsLevel": "Hvert punkt trenger et smertenivå",
     "pain.spotLevelHeading": "Smertenivå for dette punktet",
-    "pain.spotSensationHeading": "Hvordan kjennes det her?",
-    "pain.paletteHint": "Trykk på en følelse, og trykk så der du kjenner den. Eller trykk på kroppen først.",
     "pain.noSpots": "Ingen smertepunkter ennå",
     "pain.undoAction": "Angre",
     "pain.nurseWorst": "verst {n}/10",
-    "pain.dropHint": "Slipp på kroppen",
     // Pain body regions, PATIENT perspective (see modules/pain/body-regions.js)
     "pain.region.head": "Hode",
     "pain.region.neck": "Hals",

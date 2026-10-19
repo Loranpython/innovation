@@ -13,7 +13,6 @@
 
 import { el } from "../../js/ui.js";
 import { faceSvg } from "./pain-faces.js";
-import { SENSATIONS } from "./sensation-icons.js";
 import { regionName } from "./body-regions.js";
 import { createBodyMap, fitMarkers, markerSvg } from "./body-map.js";
 import { headIcon } from "./body-details.js";
@@ -70,17 +69,11 @@ export function openConfirm({ overlay, t, onConfirm }) {
   ]);
 }
 
-/** One line in the review list: marker, region, level, sensations, spreads to. */
+/** One line in the review list: marker, region, level, spreads to. */
 function spotItem(spot, t, viewLabel) {
   const item = el("li", { class: "pain-review-spot" });
   const marker = el("span", { class: "pain-review-marker" });
   marker.innerHTML = markerSvg(spot, 32);
-  const sensations = el("ul", { class: "pain-review-sensations" }, spot.sensations.map((id) => {
-    const li = el("li", {});
-    li.innerHTML = SENSATIONS.find((s) => s.id === id)?.icon() ?? "";
-    li.append(el("span", {}, [t(`pain.sensation.${id}`)]));
-    return li;
-  }));
   const spreads = spot.radiatesTo.length
     ? el("p", { class: "pain-review-spreads" }, [
         `→ ${t("pain.spreadsTo")}: `,
@@ -94,7 +87,6 @@ function spotItem(spot, t, viewLabel) {
         el("strong", {}, [`${regionName(spot.region, t)} (${viewLabel(spot.view)})`]),
         ` — ${spot.level}/10`,
       ]),
-      spot.sensations.length ? sensations : null,
       spreads,
     ]),
   );

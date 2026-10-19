@@ -2,10 +2,11 @@
   pain.css — styles for the pain screen only (loaded by pain.js).
 
   Layout
-    landscape (main target 1280×800): body panel left; level + sensations
-              right; summary bar across the bottom. Fits without scrolling.
-    portrait / narrow (<700px): body -> level -> sensations stacked, the page
-              scrolls and the summary bar sticks to the bottom.
+    landscape (main target 1280×800): body panel left at full height; on
+              the right the hint or spot editor, with the summary (chips,
+              Undo, Start over, Review & send) under it. No scrolling.
+    portrait / narrow (<700px): body -> editor stacked, the page scrolls
+              and the summary bar sticks to the bottom.
 
   Same rules as base.css: square corners, 2px dark borders, no shadows, no
   gradients. Circles only inside pictograms (faces, pain-point markers).
@@ -13,7 +14,7 @@
 
 /* ---------- colours (pain module only) ---------- */
 :root {
-  --pain-accent: #c8553d;          /* sensation part of pictograms, markers */
+  --pain-accent: #c8553d;          /* accent part of pictograms, markers */
   --pain-soft: #f6dcd4;            /* selected region / selected button */
   --pain-body-fill: #e6e3dc;
   --pain-body-stroke: #8c8a84;
@@ -66,9 +67,15 @@
   min-height: 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 450px;
-  grid-template-rows: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "body side"
+    "body summary";
   gap: var(--pad);
 }
+.pain-body    { grid-area: body; }
+.pain-side    { grid-area: side; }
+.pain-summary { grid-area: summary; }
 
 .pain-side {
   min-height: 0;
@@ -76,6 +83,15 @@
   flex-direction: column;
   gap: var(--pad);
 }
+/* No spot selected: one short hint, the figures get the space */
+.pain-side-hint {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 22px;
+  font-weight: bold;
+}
+.pain-side-hint-icon { font-size: 40px; }
 
 /* A white panel with our 2px border */
 .pain-box {
@@ -124,10 +140,6 @@
   flex: 1 1 auto;
   min-height: 0;
   width: 100%;
-}
-.pain-hint {
-  text-align: center;
-  color: var(--color-muted);
 }
 
 /* The SVG figure */
@@ -197,11 +209,6 @@
 .anatomy-gallbladder { fill: var(--pain-anatomy-gallbladder); fill-opacity: 0.4; stroke: var(--pain-anatomy-gallbladder); stroke-opacity: 0.55; }
 .anatomy-brain { fill: var(--pain-anatomy-lung); fill-opacity: 0.15; stroke: var(--pain-anatomy-lung); stroke-opacity: 0.4; }
 
-/* Pain points: marker with a soft halo */
-.pain-marks { pointer-events: none; }
-.pain-mark { fill: var(--pain-accent); stroke: var(--color-surface); stroke-width: 1.5; }
-.pain-mark-halo { fill: var(--pain-accent); opacity: 0.2; }
-
 /* ---------- close-up ---------- */
 .pain-closeup {
   flex: 1 1 auto;
@@ -261,7 +268,6 @@
 .body-svg--closeup .body-region { stroke-width: 1.5; }
 .body-svg--closeup .body-region.is-selected { stroke-width: 3; }
 .body-svg--closeup .body-region:focus-visible { stroke-width: 4; }
-.body-svg--closeup .pain-mark { stroke-width: 2; }
 .pain-closeup-title {
   text-align: center;
 }
@@ -377,94 +383,22 @@
   color: var(--color-muted);
 }
 
-/* ---------- sensations ---------- */
-.pain-sensations {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow: auto;                /* safety net on short screens */
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-/* Landscape: two rows that fill the panel, at most square (98px + gap) */
-.pain-sensations-grid {
-  flex: 1 1 auto;
-  min-height: 0;
-  max-height: 232px;              /* rows up to ~112px: near-square tiles */
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  grid-template-rows: repeat(2, minmax(0, 1fr));   /* all tiles equal height */
-  gap: 8px;
-}
-.pain-sensation {
-  position: relative;
-  min-height: 0;
-  padding: 6px 4px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-}
-.pain-sensation .sensation-icon { width: 44px; height: 44px; flex: 0 0 auto; }
-.pain-sensation-label {
-  font-size: 14px;
-  font-weight: bold;
-  line-height: 1.15;
-  text-align: center;
-  text-wrap: balance;            /* "Sharp / stabbing" wraps into 2 even lines */
-}
-.pain-sensation[aria-pressed="true"] {
-  background: var(--pain-soft);
-  border-color: var(--pain-accent);
-  outline: 3px solid var(--pain-accent);
-  outline-offset: -5px;
-}
-/* Checkmark in the corner when selected */
-.pain-sensation-check { display: none; }
-.pain-sensation[aria-pressed="true"] .pain-sensation-check {
-  display: block;
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 24px;
-  height: 24px;
-  background: var(--pain-accent);
-}
-.pain-sensation[aria-pressed="true"] .pain-sensation-check::after {
-  content: "";
-  position: absolute;
-  left: 6px;
-  top: 5px;
-  width: 11px;
-  height: 6px;
-  border-left: 3px solid var(--color-surface);
-  border-bottom: 3px solid var(--color-surface);
-  transform: rotate(-45deg);
-}
-
-/* ---------- summary bar ---------- */
+/* ---------- summary (right column in landscape) ---------- */
 .pain-summary {
-  flex: 0 0 auto;
+  min-height: 0;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--pad);
-  padding: 8px 8px 8px 16px;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
   background: var(--color-surface);
   border: var(--border);
 }
-.pain-summary-stats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 24px;
-  font-size: 18px;
-}
-.pain-stat strong { font-size: 22px; }
 .pain-summary-actions {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
 }
+.pain-summary-actions .big-button { grid-column: 1 / -1; }
 .pain-summary .big-button { min-height: 64px; }
 .pain-start-over { min-height: 64px; }
 
@@ -558,28 +492,6 @@
   font-size: 18px;
   font-weight: bold;
 }
-.pain-review-areas {
-  padding-left: 20px;
-  font-size: 18px;
-}
-.pain-review-sensations {
-  list-style: none;
-  padding: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.pain-review-sensations li {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 12px 4px 4px;
-  background: var(--color-surface);
-  border: var(--border);
-  font-weight: bold;
-}
-.pain-review-sensations .sensation-icon { width: 40px; height: 40px; }
-
 /* ---------- spot markers + radiation arrows (v3) ---------- */
 /* Markers are drawn in screen px (see fitMarkers in body-map.js). */
 .pain-spot { cursor: pointer; }
@@ -600,9 +512,7 @@
   stroke-width: 3;
   stroke-dasharray: 4 3;
 }
-.pain-spot-badge rect { fill: var(--color-surface); stroke: var(--color-text); stroke-width: 1; }
-.pain-spot-more { font-family: Arial, Helvetica, sans-serif; font-weight: bold; fill: var(--color-text); }
-.pain-spot-badge, .pain-rays { pointer-events: none; }
+.pain-rays { pointer-events: none; }
 @keyframes pain-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.35; }
@@ -625,7 +535,7 @@
 .pain-marker-mini { display: block; flex: 0 0 auto; }
 .pain-marker-mini .pain-spot-number { font-size: 14px; }
 
-/* ---------- instruction line (armed / spreads to / hints) ---------- */
+/* ---------- instruction line (spreads to / hints) ---------- */
 .pain-instruction {
   flex: 0 0 auto;
   display: flex;
@@ -641,59 +551,11 @@
   color: var(--color-text);
   border: 2px solid var(--pain-accent);
 }
-.pain-instruction-icon .sensation-icon { width: 36px; height: 36px; display: block; }
+.pain-instruction-icon .pain-pictogram { width: 36px; height: 36px; display: block; }
 .pain-instruction-text { flex: 1 1 auto; font-weight: bold; font-size: 17px; }
 .pain-instruction-button { min-height: 48px; min-width: 96px; font-weight: bold; }
 .pain-instruction-button.is-primary { border-color: var(--color-surface); }
 .pain-body.is-radiating .body-region { cursor: crosshair; }
-
-/* ---------- palette (no spot selected) ---------- */
-.pain-palette-hint { color: var(--color-muted); font-size: 15px; line-height: 1.25; }
-.pain-palette-grid {
-  flex: 1 1 auto;
-  min-height: 0;
-  max-height: 460px;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  grid-template-rows: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-}
-.pain-tool-tile {
-  touch-action: none;                  /* drag a feeling onto the body */
-  cursor: grab;
-  user-select: none;
-  -webkit-user-select: none;
-}
-.pain-palette-grid .sensation-icon { width: 48px; height: 48px; }
-.pain-palette-grid .pain-sensation-label { font-size: 15px; }
-/* Armed ("now tap where you feel it"): inverted, thick border */
-.pain-sensation.is-armed,
-.pain-sensation.is-armed[aria-pressed="true"] {
-  background: var(--color-text);
-  color: var(--color-surface);
-  border: 5px solid var(--color-text);
-  outline: 3px solid var(--pain-accent);
-  outline-offset: -8px;
-}
-.pain-sensation.is-armed .pain-sensation-check { display: none; }
-
-/* Ghost that follows the finger while dragging a feeling */
-.pain-drag-ghost {
-  position: fixed;
-  left: 0;
-  top: 0;
-  z-index: 50;
-  width: 64px;
-  height: 64px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--color-surface);
-  border: 3px solid var(--color-text);
-  pointer-events: none;
-}
-.pain-drag-ghost .sensation-icon { width: 48px; height: 48px; }
-.pain-dragging, .pain-dragging * { cursor: grabbing !important; }
 
 /* ---------- spot editor (a spot is selected) ---------- */
 .pain-editor {
@@ -719,18 +581,13 @@
   color: var(--color-surface);
 }
 .pain-level.is-missing { outline: 3px dashed var(--pain-accent); outline-offset: -6px; }
-.pain-editor-sensations { flex: 1 1 auto; overflow: visible; gap: 4px; padding-top: 6px; padding-bottom: 6px; }
-.pain-editor-sensations .pain-heading { font-size: 18px; }
-.pain-editor-sensations .pain-sensations-grid { max-height: 176px; gap: 4px; }
-.pain-editor-sensations .pain-sensation { gap: 1px; padding: 2px; }
-.pain-editor-sensations .sensation-icon { width: 30px; height: 30px; }
-.pain-editor-sensations .pain-sensation-label { font-size: 12px; line-height: 1.05; }
 .pain-editor-actions {
   flex: 0 0 auto;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  padding: 2px;
+  padding: 4px;
 }
 .pain-editor-spreads {
   flex: 1 1 auto;
@@ -741,14 +598,14 @@
 }
 .pain-spreads {
   flex: 0 0 auto;
-  min-height: 56px;
-  padding: 0 10px;
+  min-height: 64px;
+  padding: 0 12px;
   display: inline-flex;
   align-items: center;
   gap: 6px;
   font-weight: bold;
 }
-.pain-spreads .sensation-icon { width: 30px; height: 30px; }
+.pain-spreads .pain-pictogram { width: 36px; height: 36px; }
 .pain-spreads[aria-pressed="true"] { background: var(--color-text); color: var(--color-surface); }
 .pain-targets {
   list-style: none;
@@ -778,11 +635,15 @@
 .pain-chips {
   flex: 1 1 auto;
   min-width: 0;
+  min-height: 0;
+  max-height: 200px;
   list-style: none;
   padding: 0;
   display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
   gap: 8px;
-  overflow-x: auto;
+  overflow-y: auto;
 }
 .pain-chips-empty { color: var(--color-muted); align-self: center; }
 .pain-chip {
@@ -797,8 +658,6 @@
 .pain-chip[aria-current="true"] { background: var(--pain-soft); border-width: 3px; }
 .pain-chip.is-missing strong { color: var(--pain-accent); }
 .pain-chip.is-flagged { outline: 3px dashed var(--pain-accent); outline-offset: -7px; }
-.pain-chip-icons { display: inline-flex; align-items: center; gap: 2px; font-weight: bold; }
-.pain-chip-icons .sensation-icon { width: 22px; height: 22px; }
 .pain-undo {
   min-height: 64px;
   display: inline-flex;
@@ -831,41 +690,23 @@
   .pain-main {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto;
+    grid-template-areas: "body" "side" "summary";
   }
   .pain-body { height: max(420px, 62vh); }
   .pain-summary {
     position: sticky;                    /* send button always in reach */
     bottom: 0;
     z-index: 5;
+    flex-direction: row;
     flex-wrap: wrap;
+    align-items: center;
     margin: 0 calc(-1 * var(--pad)) calc(-1 * var(--pad));
     padding: 8px var(--pad);
   }
-  .pain-sensations-grid { flex: none; max-height: none; grid-template-rows: none; }
-  .pain-sensation { aspect-ratio: 1; }
+  .pain-chips { flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; max-height: none; }
+  .pain-summary-actions { display: flex; }
   .pain-review-grid { grid-template-columns: minmax(0, 1fr); }
   .pain-review-map { height: 300px; }
-}
-
-/* Short landscape screens (e.g. 1366×768): slightly smaller pictograms */
-/* Short landscape screens (1280×800 minus browser bars, 1366×768): keep
-   all 8 tiles visible by using a slightly smaller pictogram and label */
-@media (max-height: 760px) and (min-height: 561px) and (orientation: landscape) {
-  .pain-sensation { gap: 2px; padding: 3px; }
-  .pain-sensation .sensation-icon { width: 36px; height: 36px; }
-  .pain-sensation-label { font-size: 13px; line-height: 1.1; }
-}
-/* Very short landscape viewports (e.g. 1280×800 screen minus browser bars):
-   everything can't fit, so let the page scroll a little instead of
-   squeezing the tiles; the summary bar sticks to the bottom. */
-@media (max-height: 720px) and (min-height: 561px) and (orientation: landscape) {
-  .pain { height: auto; }
-  .pain-main {
-    height: calc(var(--vh) - var(--header-h) - var(--toolbar-h) - 3 * var(--pad));
-    min-height: 470px;
-  }
-  .pain-sensations-grid { flex: none; max-height: none; grid-template-rows: repeat(2, minmax(86px, 1fr)); }
-  .pain-summary { position: sticky; bottom: 0; z-index: 5; }
 }
 
 @media (max-width: 700px) {
@@ -888,19 +729,10 @@
   .pain.has-selection .pain-editor > * { flex: none; }
   /* While choosing where the pain spreads to, the body must be free to tap */
   .pain.has-selection.is-radiating .pain-side { display: none; }
-  .pain-palette-grid { max-height: none; grid-template-rows: none; }
-  .pain-palette-grid .pain-sensation { min-height: 112px; }
-  .pain-editor-actions { flex-wrap: wrap; }
-  .pain-editor-sensations .pain-sensations-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .pain-editor-sensations .pain-sensation { aspect-ratio: auto; min-height: 84px; }
   .pain-faces { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .pain-sensations-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .pain-sensation { aspect-ratio: auto; min-height: 112px; }
   .pain-summary { gap: 6px; }
-  .pain-summary-stats { gap: 2px 16px; font-size: 16px; }
-  .pain-stat strong { font-size: 18px; }
   .pain-summary-actions { width: 100%; }
   .pain-summary-actions button { min-height: 56px; padding: 0 12px; white-space: nowrap; }
-  .pain-summary-actions .big-button { flex: 1 1 auto; font-size: 20px; }
+  .pain-summary-actions .big-button { flex: 1 1 auto; font-size: 20px; white-space: normal; line-height: 1.1; padding: 0 8px; }
   .pain-dialog { padding: 16px; }
 }

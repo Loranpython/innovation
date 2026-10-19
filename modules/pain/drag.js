@@ -1,18 +1,15 @@
 /*
   drag.js — dragging with pointer events (mouse, pen and touch).
 
-    attachSensationDrag(tile, { iconHtml, onDrop })
-        Press a feeling tile and move: a ghost of the icon follows the
-        pointer. On release, onDrop(clientX, clientY) decides what happens
-        (new spot, add to a marker, or nothing). A short tap is NOT a drag,
-        so the tile's normal click (arm the feeling) still works.
-
     startMarkerMove(event, { marker, onDrop })
-        Move a selected marker in the close-up. On release,
+        Move a marker in the close-up. On release,
         onDrop(clientX, clientY) checks that it is still on the body.
 
-  The tiles and the close-up SVG use touch-action: none (pain.css), so the
-  browser does not scroll while dragging.
+    swallowClickAfterRelease(pointerId)
+        Ignore the click that follows a tap that already did its work.
+
+  The close-up SVG uses touch-action: none (pain.css), so the browser does
+  not scroll while dragging.
 */
 
 const THRESHOLD = 8;          // px the pointer must move before it is a drag
@@ -82,30 +79,6 @@ export function trackPointerDrag(startEvent, { onStart, onMove, onEnd, onCancel 
   window.addEventListener("pointermove", move);
   window.addEventListener("pointerup", up);
   window.addEventListener("pointercancel", cancel);
-}
-
-export function attachSensationDrag(tile, { iconHtml, onDrop }) {
-  tile.addEventListener("pointerdown", (event) => {
-    if (event.button !== 0) return;
-    let ghost = null;
-    const place = (e) => {
-      ghost.style.transform = `translate(${e.clientX - 32}px, ${e.clientY - 32}px)`;
-    };
-    const removeGhost = () => ghost?.remove();
-    trackPointerDrag(event, {
-      onStart: (e) => {
-        ghost = document.createElement("div");
-        ghost.className = "pain-drag-ghost";
-        ghost.setAttribute("aria-hidden", "true");
-        ghost.innerHTML = iconHtml;
-        document.body.append(ghost);
-        place(e);
-      },
-      onMove: place,
-      onEnd: (e) => { removeGhost(); onDrop(e.clientX, e.clientY); },
-      onCancel: removeGhost,
-    });
-  });
 }
 
 export function startMarkerMove(event, { marker, svg, onDrop }) {

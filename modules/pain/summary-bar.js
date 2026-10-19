@@ -1,9 +1,13 @@
 /*
   summary-bar.js — the bottom bar of the pain screen (same box as before).
 
-    [1 Head · 8/10 ⚡] [2 Right hand · ?/10] …   Undo   Start over   Review & send
+    [1 Head · 8/10] [2 Right hand · ?/10] …   Undo   Start over   Review & send
 
-  - Spot chips scroll horizontally; tapping one selects that spot.
+  Landscape: it sits under the spot editor in the right column (pain.css),
+  so the body figures get the full height. Narrow: sticky at the bottom.
+
+  - Spot chips wrap (landscape) or scroll sideways (narrow); tapping one
+    selects that spot.
     A chip without a level shows "?/10" in a warning style.
   - "Review & send" works once there is at least one spot and every spot
     has a level. Before that it LOOKS disabled (aria-disabled), and tapping
@@ -13,7 +17,6 @@
 */
 
 import { el } from "../../js/ui.js";
-import { SENSATIONS } from "./sensation-icons.js";
 import { regionName } from "./body-regions.js";
 import { markerSvg, spotDescription } from "./body-map.js";
 
@@ -73,11 +76,6 @@ export function createSummaryBar({ t, store, onReview, onStartOver }) {
       `${regionName(spot.region, t)} · `,
       el("strong", {}, [`${spot.level ?? "?"}/10`]),
     ]));
-    const icons = el("span", { class: "pain-chip-icons", "aria-hidden": "true" });
-    icons.innerHTML = spot.sensations.slice(0, 2)
-      .map((id) => SENSATIONS.find((s) => s.id === id)?.icon() ?? "").join("");
-    if (spot.sensations.length > 2) icons.append(`+${spot.sensations.length - 2}`);
-    button.append(icons);
     return el("li", {}, [button]);
   }
 

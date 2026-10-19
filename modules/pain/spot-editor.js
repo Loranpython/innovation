@@ -1,89 +1,37 @@
 /*
   spot-editor.js — the right-hand panel of the pain screen. It shows:
 
-    PALETTE  (no spot selected)
-      8 sensation tiles + "Spreads to…". Tap a tile to ARM it, then tap the
-      body ("tool-first"); or drag a tile onto the body / onto a marker.
+    HINT     (no spot selected)
+      "Tap where it hurts", short, so the body figures get the space.
 
     EDITOR   (a spot is selected)
       "2 · Right hand (Front)" + Done, the pain level for this spot,
-      "What does it feel like here?" toggles, "Spreads to…" with its
-      targets (× to remove) and "Delete spot" (with a square inline confirm).
+      one "Spreads to →" button with its targets (× to remove) and
+      "Delete spot" (with a square inline confirm).
 
   createSidePanel() returns { el, update(state) }. update() rebuilds only
-  when the panel switches between palette and another spot; otherwise it
+  when the panel switches between the hint and another spot; otherwise it
   updates the existing elements (so slider drags and focus survive).
 */
 
 import { el } from "../../js/ui.js";
-import { SENSATIONS, radiatingIcon } from "./sensation-icons.js";
+import { radiatingIcon } from "./pain-icons.js";
 import { regionName } from "./body-regions.js";
 import { markerSvg } from "./body-map.js";
 import { createLevelPicker } from "./level-picker.js";
 
-/** One square sensation tile (shared look with the old sensation buttons). */
-function sensationTile({ id, iconHtml, label, focusKey, onClick }) {
-  const button = el("button", {
-    type: "button",
-    class: "pain-sensation",
-    "aria-label": label,
-    "data-sensation": id,
-    "data-focus-key": focusKey,
-    onClick,
-  });
-  button.innerHTML = iconHtml;
-  button.append(
-    el("span", { class: "pain-sensation-label" }, [label]),
-    el("span", { class: "pain-sensation-check", "aria-hidden": "true" }),
-  );
-  return button;
-}
-
-export function createSidePanel({ t, store, viewLabel, attachTileDrag }) {
+export function createSidePanel({ t, store, viewLabel }) {
   const root = el("div", { class: "pain-side" });
   let shownKey = null;
-  let parts = null;            // elements of the current palette / editor
+  let parts = null;            // elements of the current hint / editor
 
-  // ---------------------------------------------------------------- palette
-  function buildPalette() {
-    const tiles = SENSATIONS.map(({ id, icon }) => {
-      const tile = sensationTile({
-        id,
-        iconHtml: icon(),
-        label: t(`pain.sensation.${id}`),
-        focusKey: `palette:${id}`,
-        onClick: () => store.arm(id),
-      });
-      tile.classList.add("pain-tool-tile");
-      attachTileDrag?.(tile, id);
-      return tile;
-    });
-    const spreadTile = sensationTile({
-      id: "radiating",
-      iconHtml: radiatingIcon(),
-      label: t("pain.spreadsToButton"),
-      focusKey: "palette:radiating",
-      onClick: () => (store.state.mode === "radiating" ? store.cancelMode() : store.startRadiating()),
-    });
-    spreadTile.classList.add("pain-tool-tile", "pain-sensation--radiate");
-
-    const section = el("section", { class: "pain-box pain-sensations pain-palette" }, [
-      el("h2", { class: "pain-heading" }, [t("pain.sensationHeading")]),
-      el("p", { class: "pain-palette-hint" }, [t("pain.paletteHint")]),
-      el("div", { class: "pain-palette-grid" }, [...tiles, spreadTile]),
+  // ---------------------------------------------------------------- hint
+  function buildHint() {
+    const section = el("section", { class: "pain-box pain-side-hint" }, [
+      el("span", { class: "icon pain-side-hint-icon", "aria-hidden": "true" }, ["👆"]),
+      el("p", {}, [t("pain.bodyHint")]),
     ]);
-    return { el: section, tiles, spreadTile };
-  }
-
-  function updatePalette(state) {
-    for (const tile of parts.tiles) {
-      const armed = state.armedSensation === tile.dataset.sensation;
-      tile.setAttribute("aria-pressed", String(armed));
-      tile.classList.toggle("is-armed", armed);
-    }
-    const radiating = state.mode === "radiating";
-    parts.spreadTile.setAttribute("aria-pressed", String(radiating));
-    parts.spreadTile.classList.toggle("is-armed", radiating);
+    return { el: section };
   }
 
   // ---------------------------------------------------------------- editor
@@ -103,14 +51,6 @@ export function createSidePanel({ t, store, viewLabel, attachTileDrag }) {
       heading: t("pain.spotLevelHeading"),
       onChange: (level) => store.setLevel(spot.id, level),
     });
-
-    const toggles = SENSATIONS.map(({ id, icon }) => sensationTile({
-      id,
-      iconHtml: icon(),
-      label: t(`pain.sensation.${id}`),
-      focusKey: `editor:${id}`,
-      onClick: () => store.toggleSensation(spot.id, id),
-    }));
 
     const spreadButton = el("button", {
       type: "button",
@@ -157,16 +97,12 @@ export function createSidePanel({ t, store, viewLabel, attachTileDrag }) {
     const editor = el("div", { class: "pain-editor", role: "region", "aria-label": t("pain.spot") }, [
       el("div", { class: "pain-box pain-editor-head" }, [marker, title, doneButton]),
       picker.el,
-      el("section", { class: "pain-box pain-sensations pain-editor-sensations" }, [
-        el("h2", { class: "pain-heading" }, [t("pain.spotSensationHeading")]),
-        el("div", { class: "pain-sensations-grid" }, toggles),
-      ]),
       el("div", { class: "pain-box pain-editor-actions" }, [
         el("div", { class: "pain-editor-spreads" }, [spreadButton, targetList]),
         actions,
       ]),
     ]);
-    return { el: editor, title, marker, picker, toggles, spreadButton, targetList };
+    return { el: editor, title, marker, picker, spreadButton, targetList };
   }
 
   function updateEditor(state, spot) {
@@ -174,9 +110,6 @@ export function createSidePanel({ t, store, viewLabel, attachTileDrag }) {
     parts.title.textContent = `${spot.number} · ${regionName(spot.region, t)} (${viewLabel(spot.view)})`;
     parts.picker.update(spot.level);
     parts.picker.el.classList.toggle("is-missing", state.highlightMissing && spot.level === null);
-    for (const toggle of parts.toggles) {
-      toggle.setAttribute("aria-pressed", String(spot.sensations.includes(toggle.dataset.sensation)));
-    }
     const radiating = state.mode === "radiating";
     parts.spreadButton.setAttribute("aria-pressed", String(radiating));
     parts.targetList.replaceChildren(...spot.radiatesTo.map((target, index) => {
@@ -194,15 +127,14 @@ export function createSidePanel({ t, store, viewLabel, attachTileDrag }) {
   // ---------------------------------------------------------------- update
   function update(state) {
     const spot = store.selectedSpot();
-    const key = spot ? `spot:${spot.id}` : "palette";
+    const key = spot ? `spot:${spot.id}` : "hint";
     if (key !== shownKey) {
       shownKey = key;
-      parts = spot ? buildEditor(spot) : buildPalette();
+      parts = spot ? buildEditor(spot) : buildHint();
       root.replaceChildren(parts.el);
       root.classList.toggle("is-editing", Boolean(spot));
     }
     if (spot) updateEditor(state, spot);
-    else updatePalette(state);
   }
 
   return { el: root, update };

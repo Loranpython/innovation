@@ -409,12 +409,14 @@ function detailsElement(row) {
 
 /**
  * Pain, current format { maxLevel, spots: [{ number, view, region, regionLabel,
- * level, sensations, radiatesTo: [{ view, region, regionLabel }] }] }:
+ * level, radiatesTo: [{ view, region, regionLabel }] }] }:
  *   Worst pain: 8/10
- *   1 · Head (front)        8/10 · Sharp / stabbing
- *   2 · Lower back (back)   6/10 · Dull ache
+ *   1 · Head (front)        8/10
+ *   2 · Lower back (back)   6/10
  *       → spreads to right thigh, right lower leg
  * Spots are listed worst first; levels of 7 or more are highlighted.
+ * Older requests may still have `sensations` per spot ("· Sharp / stabbing");
+ * those are shown too, so saved notifications keep their meaning.
  *
  * Older format { level, areas, points, sensations } is shown as
  *   Pain: 7/10 · Where: Right thigh (front), Lower back · Feels: Burning

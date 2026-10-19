@@ -1,8 +1,8 @@
 /*
   pain-state.js — the single source of truth for the pain screen. No DOM.
 
-  The patient places PAIN SPOTS. Every spot has its own location, level,
-  sensation types and (optional) places the pain spreads to:
+  The patient places PAIN SPOTS. Every spot has its own location, level
+  and (optional) places the pain spreads to:
 
     spot = {
       id, number,                 // number 1, 2, 3… is shown on the marker
@@ -11,7 +11,6 @@
       region,                     // PATIENT-perspective region id
       x, y,                       // coordinates in the 240 × 580 drawing
       level: null | 0..10,        // null until the patient chooses
-      sensations: ["sharp", …],
       radiatesTo: [{ view, drawId, region, x, y }]   // same view as the spot
     }
 
@@ -19,8 +18,8 @@
   a snapshot to `history` (for Undo); then all listeners are called once,
   and the screen re-renders.
 
-  UI state lives here too (no history): selected spot, armed sensation,
-  mode ("idle" | "placing" | "radiating"), close-up, zoom, hint.
+  UI state lives here too (no history): selected spot,
+  mode ("idle" | "radiating"), close-up, zoom, hint.
 */
 
 import { toPatientRegion } from "./body-regions.js";
@@ -34,8 +33,7 @@ export function createPainStore() {
   const state = {
     spots: [],
     selectedSpotId: null,
-    armedSensation: null,     // sensation chosen "tool-first", waiting to be placed
-    mode: "idle",             // "idle" | "placing" | "radiating"
+    mode: "idle",             // "idle" | "radiating"
     history: [],              // snapshots of { spots, selectedSpotId } for Undo
     closeup: null,            // { view, drawId } or null = whole body
     zoom: 1,
@@ -88,7 +86,7 @@ export function createPainStore() {
   }
 
   // ---------------------------------------------------------------- spots
-  function addSpot({ view, drawId, x, y, sensations = [] }) {
+  function addSpot({ view, drawId, x, y }) {
     const spot = {
       id: `spot-${nextId++}`,
       number: 0,
@@ -97,13 +95,11 @@ export function createPainStore() {
       region: toPatientRegion(drawId, view),
       x, y,
       level: null,
-      sensations: [...sensations],
       radiatesTo: [],
     };
     commit(() => {
       state.spots.push(spot);
       state.selectedSpotId = spot.id;
-      state.armedSensation = null;
       state.mode = "idle";
     });
     return spot;
@@ -113,30 +109,6 @@ export function createPainStore() {
     const spot = getSpot(id);
     if (!spot || spot.level === level) return;
     commit(() => { spot.level = level; }, `level:${id}`);
-  }
-
-  function toggleSensation(id, sensation) {
-    const spot = getSpot(id);
-    if (!spot) return;
-    commit(() => {
-      spot.sensations = spot.sensations.includes(sensation)
-        ? spot.sensations.filter((s) => s !== sensation)
-        : [...spot.sensations, sensation];
-    });
-  }
-
-  /** Add a sensation (drag & drop onto a marker). No duplicates. */
-  function addSensation(id, sensation) {
-    const spot = getSpot(id);
-    if (!spot) return;
-    if (spot.sensations.includes(sensation)) {
-      ui(() => { state.selectedSpotId = id; });
-      return;
-    }
-    commit(() => {
-      spot.sensations = [...spot.sensations, sensation];
-      state.selectedSpotId = id;
-    });
   }
 
   function moveSpot(id, { drawId, x, y }) {
@@ -197,7 +169,6 @@ export function createPainStore() {
     commit(() => {
       state.spots = [];
       state.selectedSpotId = null;
-      state.armedSensation = null;
       state.mode = "idle";
       state.closeup = null;
       state.zoom = 1;
@@ -210,35 +181,20 @@ export function createPainStore() {
     ui(() => {
       state.selectedSpotId = getSpot(id) ? id : null;
       state.hint = null;
-      if (id) state.armedSensation = null;
-      if (state.mode === "placing") state.mode = "idle";
-    });
-  }
-
-  /** Arm a sensation (tap again to disarm). */
-  function arm(sensation) {
-    ui(() => {
-      const disarm = state.armedSensation === sensation;
-      state.armedSensation = disarm ? null : sensation;
-      state.mode = disarm ? "idle" : "placing";
-      state.selectedSpotId = null;
-      state.hint = null;
     });
   }
 
   function startRadiating() {
     ui(() => {
       state.mode = "radiating";
-      state.armedSensation = null;
       state.hint = null;
     });
   }
 
-  /** Leave placing / radiating mode. */
+  /** Leave radiating mode. */
   function cancelMode() {
     ui(() => {
       state.mode = "idle";
-      state.armedSensation = null;
       state.hint = null;
     });
   }
@@ -267,7 +223,6 @@ export function createPainStore() {
       const first = state.spots.find((spot) => spot.level === null);
       if (first) state.selectedSpotId = first.id;
       state.mode = "idle";
-      state.armedSensation = null;
     });
   }
 
@@ -289,9 +244,9 @@ export function createPainStore() {
     state,
     subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); },
     getSpot, selectedSpot, maxLevel, canReview,
-    addSpot, setLevel, toggleSensation, addSensation, moveSpot, removeSpot,
+    addSpot, setLevel, moveSpot, removeSpot,
     addRadiation, removeRadiation, undo, reset,
-    select, arm, startRadiating, cancelMode, openCloseup, closeCloseup, setZoom, setHint,
+    select, startRadiating, cancelMode, openCloseup, closeCloseup, setZoom, setHint,
     flagMissingLevels,
   };
 }

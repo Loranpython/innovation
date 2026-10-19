@@ -1,37 +1,37 @@
 /*
   pain.js — screen #/pain: "Where does it hurt?"
 
-  The patient places PAIN SPOTS. Each spot has its own level (required),
-  sensation types and optional places the pain spreads to.
+  The patient places PAIN SPOTS. Each spot has its own level (required)
+  and optional places the pain spreads to.
 
-    Tool-first: tap a feeling in the palette (it is "armed") -> tap a body
-                part -> tap the exact place in the close-up -> spot created.
-                Or drag a feeling onto the body (or onto a marker).
-    Body-first: tap a body part -> close-up -> tap -> empty spot -> editor.
-    Spreads to: in the editor (or the 9th palette tile), then tap places.
+    Tap a body part -> close-up -> tap the exact place -> spot + editor.
+    Spreads to: the "Spreads to →" button in the editor, then tap places.
+
+  (The eight sensation types were removed after clinical feedback: they
+  were ambiguous for patients with communication difficulties.)
 
   This file only wires things together:
     pain-state.js   state + changes + undo (one source of truth)
     body-map.js     the SVG figures, markers and arrows
-    spot-editor.js  right panel (palette or spot editor)
-    summary-bar.js  bottom bar (spot chips, Undo, Start over, Review & send)
+    spot-editor.js  right panel (hint or spot editor)
+    summary-bar.js  spot chips, Undo, Start over, Review & send
     review.js       review + confirm overlays
-    drag.js         dragging feelings and moving markers
+    drag.js         moving markers in the close-up
 
   Every change in the store calls renderAll() once.
 */
 
 import { createScreen, el } from "../../js/ui.js";
 import { createPainStore, ZOOM_MIN, ZOOM_MAX, ZOOM_STEP } from "./pain-state.js";
-import { createBodyMap, fitMarkers, screenToSvg, regionAtPoint, markerAtPoint } from "./body-map.js";
+import { createBodyMap, fitMarkers, screenToSvg, regionAtPoint } from "./body-map.js";
 import { headIcon } from "./body-details.js";
 import { findRegion, toPatientRegion, regionName, englishRegionLabel } from "./body-regions.js";
 import { faceEmoji } from "./pain-faces.js";
-import { SENSATIONS, radiatingIcon } from "./sensation-icons.js";
+import { radiatingIcon } from "./pain-icons.js";
 import { createSidePanel } from "./spot-editor.js";
 import { createSummaryBar } from "./summary-bar.js";
 import { createOverlay, openReview, openConfirm } from "./review.js";
-import { attachSensationDrag, startMarkerMove, swallowClickAfterRelease } from "./drag.js";
+import { startMarkerMove, swallowClickAfterRelease } from "./drag.js";
 
 // Square toolbar icons (24 × 24, stroke-based like our pictograms).
 const TOOL_ICONS = {
@@ -78,10 +78,10 @@ export function render(container, ctx) {
       return;
     }
     if (!inCloseup) {
-      store.openCloseup(view, drawId);           // an armed feeling stays armed
+      store.openCloseup(view, drawId);
       return;
     }
-    store.addSpot({ view, drawId, x, y, sensations: state.armedSensation ? [state.armedSensation] : [] });
+    store.addSpot({ view, drawId, x, y });
   }
 
   /** A spot marker was tapped. */
@@ -96,20 +96,6 @@ export function render(container, ctx) {
       return;
     }
     store.select(spotId);
-  }
-
-  /**
-   * A feeling was dragged and released at a screen point:
-   * on (or within 20px of) a marker -> add it to that spot (no duplicates);
-   * on the body -> new spot right there; anywhere else -> nothing.
-   */
-  function dropSensation(sensation, clientX, clientY) {
-    const spotId = markerAtPoint(bodyPanel, clientX, clientY, 20);
-    if (spotId) { store.addSensation(spotId, sensation); return; }
-    const hit = regionAtPoint(clientX, clientY);
-    if (hit && bodyPanel.contains(hit.svg)) {
-      store.addSpot({ view: hit.view, drawId: hit.drawId, x: hit.x, y: hit.y, sensations: [sensation] });
-    }
   }
 
   /** Close-up: the selected marker was dragged and released here. */
@@ -187,18 +173,13 @@ export function render(container, ctx) {
     return button;
   }
 
-  /** Instruction line above the figure: what to do now (armed / radiating / hint). */
+  /** Instruction line above the figure: what to do now (radiating / hint). */
   function instructionLine() {
     const origin = store.selectedSpot();
     let iconHtml = "";
     let text = "";
     let button = null;
-    if (state.mode === "placing" && state.armedSensation) {
-      iconHtml = SENSATIONS.find((s) => s.id === state.armedSensation).icon();
-      text = t("pain.armedHint");
-      button = el("button", { type: "button", class: "pain-instruction-button", "data-focus-key": "instr:cancel",
-        "aria-label": t("pain.cancel"), onClick: () => store.cancelMode() }, [t("pain.cancel")]);
-    } else if (state.mode === "radiating") {
+    if (state.mode === "radiating") {
       iconHtml = radiatingIcon();
       text = t(origin ? "pain.radiateHint" : "pain.radiatePickOrigin");
       button = origin
@@ -260,26 +241,16 @@ export function render(container, ctx) {
             el("div", { class: "pain-view-map" }, [map]),
           ]);
         })),
-        el("p", { class: "pain-hint" }, [t("pain.bodyHint")]),
       ];
     }
     bodyPanel.replaceChildren(...[instructionLine(), content].flat().filter(Boolean));
     bodyPanel.classList.toggle("is-radiating", state.mode === "radiating");
-    bodyPanel.classList.toggle("is-placing", state.mode === "placing");
   }
 
   // ---------------------------------------------------------------- panels
   const { root, body } = createScreen(ctx, { title: t("pain.title"), className: "pain" });
   const overlay = createOverlay(root);
-  const sidePanel = createSidePanel({
-    t,
-    store,
-    viewLabel,
-    attachTileDrag: (tile, sensation) => attachSensationDrag(tile, {
-      iconHtml: SENSATIONS.find((s) => s.id === sensation).icon(),
-      onDrop: (x, y) => dropSensation(sensation, x, y),
-    }),
-  });
+  const sidePanel = createSidePanel({ t, store, viewLabel });
   const summaryBar = createSummaryBar({
     t,
     store,
@@ -296,7 +267,6 @@ export function render(container, ctx) {
       x: spot.x,
       y: spot.y,
       level: spot.level,
-      sensations: [...spot.sensations],
       radiatesTo: spot.radiatesTo.map(({ view, region, x, y }) => ({
         view, region, regionLabel: englishRegionLabel(region, view), x, y,
       })),
@@ -307,8 +277,9 @@ export function render(container, ctx) {
   }
 
   // ---------------------------------------------------------------- render
-  body.append(el("div", { class: "pain-main" }, [bodyPanel, sidePanel.el]));
-  root.append(summaryBar.el);
+  // Landscape: the summary sits under the editor in the right column, so the
+  // figures get the full height (pain.css places it with a grid).
+  body.append(el("div", { class: "pain-main" }, [bodyPanel, sidePanel.el, summaryBar.el]));
 
   let previousMode = state.mode;
   function renderAll() {
@@ -324,7 +295,7 @@ export function render(container, ctx) {
     if (focusKey && !root.contains(document.activeElement)) {
       root.querySelector(`[data-focus-key="${CSS.escape(focusKey)}"]`)?.focus();
     }
-    // Narrow screens: after arming a feeling, bring the body into view.
+    // Narrow screens: when choosing where the pain spreads to, bring the body into view.
     if (state.mode !== previousMode && state.mode !== "idle" && isNarrow()) {
       bodyPanel.scrollIntoView({ block: "start", behavior: "smooth" });
     }
@@ -334,7 +305,7 @@ export function render(container, ctx) {
 
   const isNarrow = () => window.matchMedia("(max-width: 700px), (orientation: portrait)").matches;
 
-  // Escape leaves "armed" / "spreads to" mode, or closes the spot editor.
+  // Escape leaves "spreads to" mode, or closes the spot editor.
   root.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;
     if (state.mode !== "idle") store.cancelMode();
