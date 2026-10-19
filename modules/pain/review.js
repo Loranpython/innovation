@@ -4,7 +4,9 @@
     createOverlay(root)  host for one dialog at a time (Escape closes it)
     openReview(...)      "Check and send": worst pain + face, the figure with
                          the numbered markers and arrows (front/back toggle),
-                         and one line per spot. Buttons: Change / Send to nurse.
+                         and one line per spot, then "How you feel" with the
+                         chosen general symptoms (only if any). Without spots
+                         only the symptoms are shown. Buttons: Change / Send.
     openConfirm(...)     "Clear everything?" Cancel / Clear
 
   The review keeps the layout of the earlier version; only the content
@@ -16,6 +18,7 @@ import { faceSvg } from "./pain-faces.js";
 import { regionName } from "./body-regions.js";
 import { createBodyMap, fitMarkers, markerSvg } from "./body-map.js";
 import { headIcon } from "./body-details.js";
+import { sortSymptoms, symptomIcon } from "../symptoms/symptoms.js";
 
 export function createOverlay(root) {
   let overlay = null;
@@ -93,10 +96,35 @@ function spotItem(spot, t, viewLabel) {
   return item;
 }
 
+/** "How you feel": the chosen general symptoms with their icons. */
+function symptomsBlock(symptoms, t) {
+  if (!symptoms.length) return null;
+  return [
+    el("h3", { class: "pain-review-heading" }, [t("pain.howYouFeel")]),
+    el("ul", { class: "pain-review-symptoms" }, symptoms.map((id) => el("li", {}, [
+      el("span", { class: "icon", "aria-hidden": "true" }, [symptomIcon(id)]),
+      el("span", {}, [t(`symptom.${id}`)]),
+    ]))),
+  ];
+}
+
 export function openReview({ overlay, t, store, viewLabel, onSend, reviewView = "front" }) {
   const { spots } = store.state;
+  const symptoms = sortSymptoms(store.state.symptoms);
   const worst = store.maxLevel();
   const view = reviewView;
+
+  if (!spots.length) {
+    overlay.open("pain-dialog--review pain-dialog--symptoms", "pain-review-title", [
+      el("h2", { class: "pain-dialog-title", id: "pain-review-title" }, [t("pain.reviewTitle")]),
+      el("div", { class: "pain-review-info" }, symptomsBlock(symptoms, t)),
+      el("div", { class: "pain-dialog-actions" }, [
+        dialogButton(t("pain.change"), "big-button", overlay.close),
+        dialogButton(t("pain.sendToNurse"), "big-button big-button--send", onSend),
+      ]),
+    ]);
+    return;
+  }
 
   const levelBlock = el("div", { class: "pain-review-level" }, [
     el("span", { class: "pain-review-worst" }, [t("pain.worstPainShort")]),
@@ -132,7 +160,8 @@ export function openReview({ overlay, t, store, viewLabel, onSend, reviewView = 
         levelBlock,
         el("h3", { class: "pain-review-heading" }, [t("pain.reviewAreas")]),
         el("ol", { class: "pain-review-spots" }, spots.map((spot) => spotItem(spot, t, viewLabel))),
-      ]),
+        symptomsBlock(symptoms, t),
+      ].flat().filter(Boolean)),
     ]),
     el("div", { class: "pain-dialog-actions" }, [
       dialogButton(t("pain.change"), "big-button", overlay.close),

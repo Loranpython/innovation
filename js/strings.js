@@ -102,6 +102,10 @@ export const STRINGS = {
     "pain.needsLevel": "Every spot needs a pain level",
     "pain.spotLevelHeading": "Pain level for this spot",
     "pain.noSpots": "No pain spots yet",
+    "pain.orHowFeel": "Or how do you feel?",
+    "pain.howYouFeel": "How you feel",
+    "pain.removeSymptom": "Remove: {symptom}",
+    "pain.chooseFirst": "Tap where it hurts, or how you feel",
     "pain.undoAction": "Undo",
     "pain.nurseWorst": "worst {n}/10",
     // Pain body regions, PATIENT perspective (see modules/pain/body-regions.js)
@@ -130,15 +134,7 @@ export const STRINGS = {
     "pain.region.right_foot": "Right foot",
     "pain.region.left_foot": "Left foot",
 
-    // General symptoms (modules/symptoms), no body map, no level
-    "symptoms.button": "Other symptoms",
-    "symptoms.title": "How do you feel?",
-    "symptoms.hint": "Tap one or more. No need to point at the body.",
-    "symptoms.chooseFirst": "First tap how you feel",
-    "symptoms.reviewSend": "Review & send",
-    "symptoms.reviewTitle": "Check and send",
-    "symptoms.change": "Change",
-    "symptoms.send": "Send to nurse",
+    // General symptoms (modules/symptoms), no body map, no level; chosen on the pain screen
     "symptom.nauseous": "Nauseous",
     "symptom.anxious": "Anxious",
     "symptom.dizzy": "Dizzy",
@@ -220,6 +216,7 @@ export const STRINGS = {
     "nurse.whereLine": "Where: {areas}",
     "nurse.feelsLine": "Feels: {sensations}",
     "nurse.spreadsLine": "spreads to {places}",
+    "nurse.alsoFeelsLine": "Also feels: {symptoms}",
     "nurse.detailLine": "{type}: {value}",
     "nurse.foodRequested": "Food requested",
     "nurse.speechOriginal": "Original ({lang}): “{text}”",
@@ -310,6 +307,10 @@ export const STRINGS = {
     "pain.needsLevel": "Elke plek heeft een pijnscore nodig",
     "pain.spotLevelHeading": "Pijnscore voor deze plek",
     "pain.noSpots": "Nog geen pijnplekken",
+    "pain.orHowFeel": "Of hoe voelt u zich?",
+    "pain.howYouFeel": "Hoe u zich voelt",
+    "pain.removeSymptom": "Weghalen: {symptom}",
+    "pain.chooseFirst": "Tik waar het pijn doet, of hoe u zich voelt",
     "pain.undoAction": "Ongedaan maken",
     "pain.nurseWorst": "ergste {n}/10",
     // Pain body regions, PATIENT perspective (see modules/pain/body-regions.js)
@@ -338,15 +339,7 @@ export const STRINGS = {
     "pain.region.right_foot": "Rechtervoet",
     "pain.region.left_foot": "Linkervoet",
 
-    // General symptoms (modules/symptoms), no body map, no level
-    "symptoms.button": "Andere klachten",
-    "symptoms.title": "Hoe voelt u zich?",
-    "symptoms.hint": "Tik op één of meer. U hoeft niet op het lichaam te wijzen.",
-    "symptoms.chooseFirst": "Tik eerst hoe u zich voelt",
-    "symptoms.reviewSend": "Nakijken & versturen",
-    "symptoms.reviewTitle": "Nakijken en versturen",
-    "symptoms.change": "Wijzigen",
-    "symptoms.send": "Naar verpleegkundige sturen",
+    // General symptoms (modules/symptoms), no body map, no level; chosen on the pain screen
     "symptom.nauseous": "Misselijk",
     "symptom.anxious": "Angstig",
     "symptom.dizzy": "Duizelig",
@@ -427,6 +420,7 @@ export const STRINGS = {
     "nurse.whereLine": "Waar: {areas}",
     "nurse.feelsLine": "Voelt: {sensations}",
     "nurse.spreadsLine": "straalt uit naar {places}",
+    "nurse.alsoFeelsLine": "Voelt zich ook: {symptoms}",
     "nurse.detailLine": "{type}: {value}",
     "nurse.foodRequested": "Eten gevraagd",
     "nurse.speechOriginal": "Origineel ({lang}): “{text}”",
@@ -517,6 +511,10 @@ export const STRINGS = {
     "pain.needsLevel": "Hvert punkt trenger et smertenivå",
     "pain.spotLevelHeading": "Smertenivå for dette punktet",
     "pain.noSpots": "Ingen smertepunkter ennå",
+    "pain.orHowFeel": "Eller hvordan har du det?",
+    "pain.howYouFeel": "Hvordan du har det",
+    "pain.removeSymptom": "Fjern: {symptom}",
+    "pain.chooseFirst": "Trykk der det gjør vondt, eller hvordan du har det",
     "pain.undoAction": "Angre",
     "pain.nurseWorst": "verst {n}/10",
     // Pain body regions, PATIENT perspective (see modules/pain/body-regions.js)
@@ -545,15 +543,7 @@ export const STRINGS = {
     "pain.region.right_foot": "Høyre fot",
     "pain.region.left_foot": "Venstre fot",
 
-    // General symptoms (modules/symptoms), no body map, no level
-    "symptoms.button": "Andre plager",
-    "symptoms.title": "Hvordan har du det?",
-    "symptoms.hint": "Trykk på én eller flere. Du trenger ikke å peke på kroppen.",
-    "symptoms.chooseFirst": "Trykk først på hvordan du har det",
-    "symptoms.reviewSend": "Se over og send",
-    "symptoms.reviewTitle": "Se over og send",
-    "symptoms.change": "Endre",
-    "symptoms.send": "Send til sykepleier",
+    // General symptoms (modules/symptoms), no body map, no level; chosen on the pain screen
     "symptom.nauseous": "Kvalm",
     "symptom.anxious": "Engstelig",
     "symptom.dizzy": "Svimmel",
@@ -634,6 +624,7 @@ export const STRINGS = {
     "nurse.whereLine": "Hvor: {areas}",
     "nurse.feelsLine": "Kjennes: {sensations}",
     "nurse.spreadsLine": "stråler ut til {places}",
+    "nurse.alsoFeelsLine": "Kjenner også: {symptoms}",
     "nurse.detailLine": "{type}: {value}",
     "nurse.foodRequested": "Mat ønsket",
     "nurse.speechOriginal": "Original ({lang}): «{text}»",

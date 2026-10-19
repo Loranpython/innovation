@@ -6,8 +6,11 @@
 
     Tap a body part -> close-up -> tap the exact place -> spot + editor.
     Spreads to: the "Spreads to →" button in the editor, then tap places.
-    Other symptoms (nauseous, anxious, dizzy): big button at the top,
-                goes to #/symptoms (no body map, no level).
+    General symptoms (nauseous, anxious, dizzy): three toggle tiles in the
+                right panel (no body map, no level), sent TOGETHER with
+                the spots in one notification:
+                  spots (+ symptoms) -> "pain" with details.symptoms
+                  only symptoms      -> "symptom" (as modules/symptoms)
 
   (The eight sensation types were removed after clinical feedback: they
   were ambiguous for patients with communication difficulties.)
@@ -15,8 +18,8 @@
   This file only wires things together:
     pain-state.js   state + changes + undo (one source of truth)
     body-map.js     the SVG figures, markers and arrows
-    spot-editor.js  right panel (hint or spot editor)
-    summary-bar.js  spot chips, Undo, Start over, Review & send
+    spot-editor.js  right panel (hint + symptom tiles, or spot editor)
+    summary-bar.js  spot + symptom chips, Undo, Start over, Review & send
     review.js       review + confirm overlays
     drag.js         moving markers in the close-up
 
@@ -35,6 +38,7 @@ import { createSidePanel } from "./spot-editor.js";
 import { createSummaryBar } from "./summary-bar.js";
 import { createOverlay, openReview, openConfirm } from "./review.js";
 import { startMarkerMove, swallowClickAfterRelease } from "./drag.js";
+import { GENERAL_ICON, loadSymptomStyles, sortSymptoms, symptomIcon } from "../symptoms/symptoms.js";
 
 // Square toolbar icons (24 × 24, stroke-based like our pictograms).
 const TOOL_ICONS = {
@@ -64,7 +68,7 @@ let teardown = null;
 
 export function render(container, ctx) {
   const { t } = ctx;
-  const stylesheet = loadStyles();
+  const stylesheets = [loadStyles(), loadSymptomStyles()];
   const store = createPainStore();
   const { state } = store;
   const viewLabel = (view) => t(view === "front" ? "pain.viewFront" : "pain.viewBack");
@@ -264,32 +268,34 @@ export function render(container, ctx) {
   }
 
   // ---------------------------------------------------------------- panels
-  const otherSymptoms = el("button", {
-    type: "button",
-    class: "pain-other-symptoms",
-    "aria-label": t("symptoms.button"),
-    onClick: () => {
-      speak(t("symptoms.button"));
-      ctx.navigate("#/symptoms");
-    },
-  }, [
-    el("span", { class: "icon", "aria-hidden": "true" }, ["🤢😰😵"]),
-    el("span", {}, [t("symptoms.button")]),
-  ]);
-  const { root, body } = createScreen(ctx, { title: t("pain.title"), className: "pain", actions: otherSymptoms });
+  const { root, body } = createScreen(ctx, { title: t("pain.title"), className: "pain" });
   const overlay = createOverlay(root);
   const sidePanel = createSidePanel({ t, store, viewLabel });
   const summaryBar = createSummaryBar({
     t,
     store,
     onReview: () => {
-      speak(`${t("pain.reviewTitle")}. ${t("pain.worstPainShort")}: ${store.maxLevel()}`);
+      const feels = sortSymptoms(state.symptoms).map((id) => t(`symptom.${id}`)).join(", ");
+      speak(state.spots.length
+        ? `${t("pain.reviewTitle")}. ${t("pain.worstPainShort")}: ${store.maxLevel()}${feels ? `. ${feels}` : ""}`
+        : `${t("pain.reviewTitle")}: ${feels}`);
       openReview({ overlay, t, store, viewLabel, onSend: send });
     },
     onStartOver: () => openConfirm({ overlay, t, onConfirm: () => store.reset() }),
   });
 
+  // One tap = one notification, never two (pain + symptom).
   function send() {
+    const symptoms = sortSymptoms(state.symptoms);
+    if (!state.spots.length) {
+      ctx.sendNotification({
+        type: "symptom",
+        details: { symptoms },
+        icon: symptoms.length === 1 ? symptomIcon(symptoms[0]) : GENERAL_ICON,
+      });
+      ctx.navigate("#/sent");
+      return;
+    }
     const spots = state.spots.map((spot) => ({
       number: spot.number,
       view: spot.view,
@@ -303,7 +309,7 @@ export function render(container, ctx) {
       })),
     }));
     const maxLevel = store.maxLevel();
-    ctx.sendNotification({ type: "pain", details: { maxLevel, spots }, icon: faceEmoji(maxLevel) });
+    ctx.sendNotification({ type: "pain", details: { maxLevel, spots, symptoms }, icon: faceEmoji(maxLevel) });
     ctx.navigate("#/sent");
   }
 
@@ -352,13 +358,17 @@ export function render(container, ctx) {
   resizeObserver.observe(bodyPanel);
   resizeObserver.observe(summaryBar.el);
 
-  // Hide until pain.css is loaded, so the screen does not flash unstyled.
-  if (!stylesheet.sheet) {
+  // Hide until pain.css + symptoms.css are loaded, so the screen does not flash unstyled.
+  const loading = stylesheets.filter((sheet) => !sheet.sheet);
+  if (loading.length) {
     root.style.visibility = "hidden";
-    stylesheet.addEventListener("load", () => {
+    Promise.all(loading.map((sheet) => new Promise((resolve) => {
+      sheet.addEventListener("load", resolve, { once: true });
+      sheet.addEventListener("error", resolve, { once: true });
+    }))).then(() => {
       root.style.visibility = "";
       fitMarkers(bodyPanel);
-    }, { once: true });
+    });
   }
 
   container.append(root);

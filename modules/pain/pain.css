@@ -3,10 +3,12 @@
 
   Layout
     landscape (main target 1280×800): body panel left at full height; on
-              the right the hint or spot editor, with the summary (chips,
-              Undo, Start over, Review & send) under it. No scrolling.
-    portrait / narrow (<700px): body -> editor stacked, the page scrolls
-              and the summary bar sticks to the bottom.
+              the right the hint + the three symptom tiles, or the spot
+              editor, with the summary (chips, Undo, Start over, Review &
+              send) under it. No scrolling.
+    portrait / narrow (<700px): body -> symptom tiles (one row) stacked,
+              the summary bar sticks to the bottom; the spot editor opens
+              as a bottom sheet.
 
   Same rules as base.css: square corners, 2px dark borders, no shadows, no
   gradients. Circles only inside pictograms (faces, pain-point markers).
@@ -83,7 +85,14 @@
   flex-direction: column;
   gap: var(--pad);
 }
-/* No spot selected: one short hint, the figures get the space */
+/* No spot selected: one short hint + the general symptom tiles */
+.pain-side-hint-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pad);
+}
 .pain-side-hint {
   display: flex;
   align-items: center;
@@ -93,20 +102,35 @@
 }
 .pain-side-hint-icon { font-size: 40px; }
 
-/* "Other symptoms" (nauseous, anxious, dizzy): big and visible at the top */
-.pain-other-symptoms {
-  min-height: var(--toolbar-h);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 0 24px;
-  background: var(--accent-pain);
-  border-width: 3px;
-  font-size: 22px;
-  font-weight: bold;
+/* "Or how do you feel?" nauseous / anxious / dizzy as square toggle tiles
+   (tile look in modules/symptoms/symptoms.css). The grid is a size
+   container: the tiles take the largest square that fits, at least 96px. */
+.pain-symptoms {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
-.pain-other-symptoms .icon { font-size: 32px; letter-spacing: 2px; white-space: nowrap; }
+.pain-symptoms-heading { font-size: 20px; font-weight: bold; }
+.pain-symptom-grid {
+  --gap: 12px;
+  flex: 1 1 auto;
+  min-height: 96px;
+  container-type: size;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--gap);
+}
+.pain-symptom-grid > .symptom-tile {
+  --tile: max(96px, min(calc((100cqw - 2 * var(--gap)) / 3), 100cqh, 200px));
+  flex: 0 0 auto;
+  min-width: 96px;
+  min-height: 96px;
+  padding: 4px;
+}
+.pain-symptom-grid .tile-label { line-height: 1.1; overflow-wrap: anywhere; }
 
 /* A white panel with our 2px border */
 .pain-box {
@@ -673,6 +697,8 @@
 .pain-chip[aria-current="true"] { background: var(--pain-soft); border-width: 3px; }
 .pain-chip.is-missing strong { color: var(--pain-accent); }
 .pain-chip.is-flagged { outline: 3px dashed var(--pain-accent); outline-offset: -7px; }
+.pain-chip--symptom { padding: 0 10px; }
+.pain-chip-icon { font-size: 26px; line-height: 1; }
 .pain-undo {
   min-height: 64px;
   display: inline-flex;
@@ -698,6 +724,26 @@
 .pain-review-spot-body { display: flex; flex-direction: column; gap: 6px; }
 .pain-review-spot-title { font-size: 18px; }
 .pain-review-spreads { font-weight: bold; }
+.pain-review-symptoms {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+}
+.pain-review-symptoms li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 22px;
+  font-weight: bold;
+}
+.pain-review-symptoms .icon { font-size: 44px; line-height: 1; }
+/* Only symptoms, no spots: no figure, no worst pain */
+.pain-dialog--symptoms { width: 600px; }
+.pain-dialog--symptoms .pain-review-symptoms { flex-direction: column; }
+.pain-dialog--symptoms .pain-review-symptoms li { font-size: 30px; gap: 20px; }
+.pain-dialog--symptoms .pain-review-symptoms .icon { font-size: 64px; }
 
 /* ---------- portrait / narrow: stack, page scrolls ---------- */
 @media (orientation: portrait), (max-width: 700px), (max-height: 560px) {
@@ -707,7 +753,26 @@
     grid-template-rows: auto;
     grid-template-areas: "body" "side" "summary";
   }
-  .pain-body { height: max(420px, 62vh); }
+  /* The figures take what is left after the hint, the symptom tiles
+     (--pain-symptoms-h) and the sticky summary bar, so the tiles are
+     visible without scrolling or opening anything. */
+  .pain {
+    --pain-symptoms-h: 206px;
+  }
+  .pain-body {
+    height: max(320px, calc(var(--vh) - var(--header-h) - var(--toolbar-h) - 3 * var(--pad)
+      - var(--pain-summary-height, 120px) - var(--pain-symptoms-h)));
+  }
+  /* Symptom tiles: one row right under the figures, always visible */
+  .pain-side-hint-wrap { gap: 8px; }
+  .pain-side-hint { padding: 2px 12px; gap: 8px; font-size: 18px; }
+  .pain-side-hint-icon { font-size: 26px; }
+  .pain-symptoms { padding: 8px; gap: 6px; }
+  .pain-symptoms-heading { font-size: 18px; }
+  .pain-symptom-grid { container-type: inline-size; min-height: 0; }
+  .pain-symptom-grid > .symptom-tile {
+    --tile: max(96px, min(calc((100cqw - 2 * var(--gap)) / 3), 160px));
+  }
   .pain-summary {
     position: sticky;                    /* send button always in reach */
     bottom: 0;
@@ -750,9 +815,7 @@
   .pain-summary-actions button { min-height: 56px; padding: 0 8px; line-height: 1.1; }
   .pain-summary-actions .big-button { flex: 1 1 auto; font-size: 20px; white-space: normal; line-height: 1.1; padding: 0 8px; }
   .pain-dialog { padding: 16px; }
-  /* Long words ("ACHTERKANT", "Andere klachten") must fit on a phone */
+  /* Long words ("ACHTERKANT") must fit on a phone */
   .pain-views { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .pain-view-label { font-size: 17px; gap: 4px; letter-spacing: 0; }
-  .pain-other-symptoms { font-size: 20px; gap: 8px; padding: 0 12px; }
-  .pain-other-symptoms .icon { font-size: 26px; }
 }

@@ -14,9 +14,13 @@ const routes = {
   "#/toilet":     () => import("../modules/toilet/toilet.js"),
   "#/food-drink": () => import("../modules/food-drink/food-drink.js"),
   "#/pain":       () => import("../modules/pain/pain.js"),
-  "#/symptoms":   () => import("../modules/symptoms/symptoms.js"),
   "#/speech":     () => import("../modules/speech/speech.js"),
   "#/sent":       () => import("../modules/sent/sent.js"),
+};
+
+// Old links keep working: general symptoms are now on the pain screen.
+const redirects = {
+  "#/symptoms": "#/pain",
 };
 
 const DEFAULT_ROUTE = "#/home";
@@ -48,6 +52,10 @@ export function startRouter(container, ctx) {
 
 async function showRoute(container, ctx) {
   const hash = location.hash;
+  if (redirects[hash]) {
+    navigate(redirects[hash], { replace: true });
+    return;
+  }
   if (!routes[hash]) {
     // Unknown or empty hash -> home. This fires "hashchange" again,
     // which then renders the home screen. (replace = no extra history entry)

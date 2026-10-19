@@ -417,7 +417,9 @@ function detailsElement(row) {
  *   1 · Head (front)        8/10
  *   2 · Lower back (back)   6/10
  *       → spreads to right thigh, right lower leg
+ *   Also feels: nauseous, dizzy          (only if details.symptoms is not empty)
  * Spots are listed worst first; levels of 7 or more are highlighted.
+ * Older requests without `symptoms` look exactly as before.
  * Older requests may still have `sensations` per spot ("· Sharp / stabbing");
  * those are shown too, so saved notifications keep their meaning.
  *
@@ -448,6 +450,8 @@ function painDetails(d) {
       ]));
     });
     box.append(list);
+    const feels = symptomList(d);
+    if (feels) box.append(el("div", { class: "nurse-detail-symptoms" }, [t("nurse.alsoFeelsLine", { symptoms: lower(feels) })]));
     return box;
   }
 

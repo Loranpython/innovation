@@ -10,7 +10,7 @@ The patient places **pain spots** on a body map. Every spot has its **own**:
 
 So someone can report a headache of 8/10 and lower-back pain of 6/10 that *spreads* down the right leg, all at once. The nurse sees the worst level first.
 
-General symptoms that have no place on the body (nauseous, anxious, dizzy) are **not** pain. They have their own screen, `#/symptoms` (`modules/symptoms/`), opened with the big **Other symptoms** button at the top of this screen.
+General symptoms that have no place on the body (nauseous, anxious, dizzy) are **not** pain, but they are chosen on the **same screen**: three big toggle tiles under "Or how do you feel?" in the right panel, visible without any extra tap. Pain spots and symptoms are sent **together** in one notification. The tiles, icons and the `symptom.<id>` strings come from `modules/symptoms/symptoms.js`. The old `#/symptoms` route redirects here.
 
 ### Why there are no sensation types any more
 
@@ -29,9 +29,9 @@ Earlier versions had eight sensation pictograms (sharp/stabbing, burning, aching
 | `body-details.js` | Front/back cues (face, toes vs. hair, spine, buttocks, heels) + the FRONT/BACK head pictogram. Decorative only: never changes taps |
 | `body-map.js` | SVG figure: regions, numbered markers, radiation arrows, hit testing |
 | `drag.js` | Moving markers in the close-up (pointer events) |
-| `spot-editor.js` | Right panel: "Tap where it hurts", or the editor of the selected spot |
+| `spot-editor.js` | Right panel: "Tap where it hurts" + the symptom tiles, or the editor of the selected spot |
 | `level-picker.js` | Faces + square 0–10 slider, reusable for any spot |
-| `summary-bar.js` | Spot chips, Undo, Start over, Review & send |
+| `summary-bar.js` | Spot and symptom chips, Undo, Start over, Review & send |
 | `review.js` | Review overlay + "Clear everything?" confirm |
 | `pain-faces.js` | Line faces for 0–10 |
 | `pain-icons.js` | The "Spreads to" pictogram |
@@ -39,8 +39,8 @@ Earlier versions had eight sensation pictograms (sharp/stabbing, burning, aching
 
 ## Layout
 
-- **Landscape (1280×800):** the front/back figures on the left at **full height** (554 px, was 430 px with the sensation palette). On the right only the hint *or* the spot editor, with the summary (chips, Undo, Start over, Review & send) underneath. No scrolling.
-- **Phone / portrait:** figures, then the panel; the page scrolls and the summary bar sticks to the bottom. The spot editor opens as a bottom sheet.
+- **Landscape (1280×800):** the front/back figures on the left at **full height**. On the right the hint with the three symptom tiles *or* the spot editor, with the summary (chips, Undo, Start over, Review & send) underneath. No scrolling.
+- **Phone / portrait:** figures, then the hint and the three symptom tiles in one row, then the summary bar (sticky at the bottom). The figure height is what's left after the tiles and the bar, so the tiles are visible without scrolling at 390×844. The spot editor opens as a bottom sheet.
 
 ## Data model (`pain-state.js`)
 
@@ -55,6 +55,7 @@ state = {
     level: null | 0..10,         // null until chosen
     radiatesTo: [{ view, drawId, region, x, y }]
   }],
+  symptoms: ["nauseous", "dizzy"],  // general symptoms, toggled with the tiles
   selectedSpotId,
   mode: "idle" | "radiating",
   history,                       // snapshots for Undo
@@ -62,13 +63,19 @@ state = {
 }
 ```
 
-Every change goes through a function such as `addSpot`, `setLevel`, `moveSpot`, `removeSpot`, `addRadiation`, `removeRadiation`, `reset` or `undo`. Changes to the answers push an Undo snapshot. Dragging the slider counts as one step. Then the screen re-renders once.
+Every change goes through a function such as `addSpot`, `setLevel`, `moveSpot`, `removeSpot`, `addRadiation`, `removeRadiation`, `toggleSymptom`, `reset` or `undo`. Changes to the answers push an Undo snapshot. Dragging the slider counts as one step. Then the screen re-renders once.
 
 ## Making a spot
 
 Tap a body part to open the close-up, then tap the exact place. A spot is created and its editor opens.
 
 **Spot editor** (right panel while a spot is selected): number + region, the pain level, **Spreads to →**, **Delete spot** (asks first), and **Done**. Tapping a marker or a chip selects that spot. In the close-up, markers can be **dragged** to move them; the region updates on drop, and a drop outside the body puts the marker back.
+
+## General symptoms (nauseous, anxious, dizzy)
+
+With no spot selected, the right panel shows "Tap where it hurts" and, under it, **Or how do you feel?** with three square toggle tiles (icon on top, label below). A selected tile is inverted with an accent border and a check mark (`aria-pressed`). Each selected symptom also gets a chip in the summary bar; tapping the chip unselects it. Toggles can be undone, and **Start over** clears them too.
+
+While a spot is selected, the spot editor replaces the tiles. The selection is kept, and the tiles come back after **Done**.
 
 ## Radiating pain ("Spreads to →")
 
@@ -90,9 +97,14 @@ Never send a `drawId` to the nurse. Voice assistance (`js/voice.js`) also says t
 
 ## Voice assistance
 
-When voice assistance is on (header toggle or `?voice=1`), the screen says the region that was tapped, "Left thigh. Pain level for this spot" after placing a spot, "Pain level 4" for a face (for the slider only once the finger is lifted), the places the pain spreads to, and a short summary when the review opens.
+When voice assistance is on (header toggle or `?voice=1`), the screen says the region that was tapped, a symptom's name when its tile is selected (nothing when unselected), "Left thigh. Pain level for this spot" after placing a spot, "Pain level 4" for a face (for the slider only once the finger is lifted), the places the pain spreads to, and a short summary when the review opens.
 
 ## What is sent to the nurse
+
+Always **one** notification per Review & send:
+
+- **Spots (with or without symptoms):** `type: "pain"`, as below, with `symptoms` (empty array if none).
+- **Only symptoms, no spots:** `type: "symptom"` with `{ symptoms: ["nauseous", "dizzy"] }`, shown on the dashboard as "General symptoms".
 
 ```js
 ctx.sendNotification({
@@ -106,13 +118,14 @@ ctx.sendNotification({
       radiatesTo: [
         { view: "back", region: "right_thigh", regionLabel: "Right thigh (back)", x: 145.2, y: 340.8 }
       ]
-    }]
+    }],
+    symptoms: ["nauseous"]                         // general symptoms, [] if none
   }
 });
 ctx.navigate("#/sent");
 ```
 
-**Review & send** works when there is at least one spot and **every spot has a level**. Pressed too early, it flags the spots without a level (dashed outline) and selects the first one. The 10-second duplicate protection in `js/notifications.js` still applies.
+**Review & send** works when there is at least one spot and **every spot has a level**, or when there are no spots and at least one symptom. Pressed too early, it flags the spots without a level (dashed outline) and selects the first one. The 10-second duplicate protection in `js/notifications.js` still applies.
 
 The nurse dashboard (`js/nurse.js`, `painDetails()`) shows it as:
 
@@ -121,9 +134,10 @@ Pain — Worst pain: 8/10                       [HIGH PAIN badge for 7 or more]
  1 · Head (front)        8/10
  2 · Lower back (back)   6/10
      → spreads to right thigh, right lower leg
+ Also feels: nauseous                          [only if symptoms were sent]
 ```
 
-Older notifications with sensations read `8/10 · Sharp / stabbing`.
+Older notifications with sensations read `8/10 · Sharp / stabbing`. Older ones without `symptoms` look as before.
 
 ## How to add or change a body region
 
@@ -141,5 +155,8 @@ Run `python -m http.server 8000` and open `http://localhost:8000/#/pain`, with `
 - A spot without a level blocks Review & send, and the flags appear.
 - Undo every kind of action. Move a marker in the close-up: the region updates.
 - On the **back** view, a spot on the left of the screen arrives as `left_…` (and is spoken as "Left …").
-- **Other symptoms** at the top opens `#/symptoms`.
-- 1280×800 fits without scrolling; 390×844 works with the sticky bar.
+- The three symptom tiles are visible straight away. Only symptoms -> the nurse sees "General symptoms". A spot + a symptom -> one pain card with "Also feels: …".
+- A spot without a level still blocks sending, even with a symptom selected.
+- Selecting a spot hides the tiles; Done brings them back with the same selection.
+- `#/symptoms` redirects to `#/pain`.
+- 1280×800 fits without scrolling; at 390×844 the tiles are visible above the sticky bar.

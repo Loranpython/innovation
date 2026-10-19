@@ -14,6 +14,9 @@
       radiatesTo: [{ view, drawId, region, x, y }]   // same view as the spot
     }
 
+  General symptoms (no place, no level) chosen on the same screen:
+    symptoms: ["nauseous", "dizzy"]     // ids from modules/symptoms/symptoms.js
+
   Every change goes through a function below. Changes to the answers push
   a snapshot to `history` (for Undo); then all listeners are called once,
   and the screen re-renders.
@@ -32,9 +35,10 @@ export const ZOOM_STEP = 0.25;
 export function createPainStore() {
   const state = {
     spots: [],
+    symptoms: [],             // general symptom ids, in the order they were tapped
     selectedSpotId: null,
     mode: "idle",             // "idle" | "radiating"
-    history: [],              // snapshots of { spots, selectedSpotId } for Undo
+    history: [],              // snapshots of { spots, symptoms, selectedSpotId } for Undo
     closeup: null,            // { view, drawId } or null = whole body
     zoom: 1,
     hint: null,               // { key, vars } short message for the patient
@@ -59,7 +63,7 @@ export function createPainStore() {
    */
   function commit(fn, actionKey = null) {
     if (!actionKey || actionKey !== lastActionKey) {
-      state.history.push(JSON.stringify({ spots: state.spots, selectedSpotId: state.selectedSpotId }));
+      state.history.push(JSON.stringify({ spots: state.spots, symptoms: state.symptoms, selectedSpotId: state.selectedSpotId }));
       if (state.history.length > HISTORY_LIMIT) state.history.shift();
     }
     lastActionKey = actionKey;
@@ -151,6 +155,16 @@ export function createPainStore() {
     commit(() => { spot.radiatesTo = spot.radiatesTo.filter((_, i) => i !== index); });
   }
 
+  // ---------------------------------------------------------------- symptoms
+  /** Select or unselect a general symptom (nauseous, anxious, dizzy). */
+  function toggleSymptom(id) {
+    commit(() => {
+      state.symptoms = state.symptoms.includes(id)
+        ? state.symptoms.filter((symptom) => symptom !== id)
+        : [...state.symptoms, id];
+    });
+  }
+
   // ---------------------------------------------------------------- undo / reset
   function undo() {
     const last = state.history.pop();
@@ -158,6 +172,7 @@ export function createPainStore() {
     const snapshot = JSON.parse(last);
     lastActionKey = null;
     state.spots = snapshot.spots;
+    state.symptoms = snapshot.symptoms ?? [];
     state.selectedSpotId = getSpot(snapshot.selectedSpotId) ? snapshot.selectedSpotId : null;
     if (state.mode === "radiating" && !getSpot(state.selectedSpotId)) state.mode = "idle";
     state.hint = null;
@@ -168,6 +183,7 @@ export function createPainStore() {
   function reset() {
     commit(() => {
       state.spots = [];
+      state.symptoms = [];
       state.selectedSpotId = null;
       state.mode = "idle";
       state.closeup = null;
@@ -236,16 +252,22 @@ export function createPainStore() {
     return levels.length ? Math.max(...levels) : null;
   }
 
+  /** Spots that all have a level, or no spots and at least one symptom. */
   function canReview() {
-    return state.spots.length > 0 && allSpotsHaveLevel();
+    if (state.spots.length) return allSpotsHaveLevel();
+    return state.symptoms.length > 0;
+  }
+
+  function isEmpty() {
+    return state.spots.length === 0 && state.symptoms.length === 0;
   }
 
   return {
     state,
     subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); },
-    getSpot, selectedSpot, maxLevel, canReview,
+    getSpot, selectedSpot, maxLevel, canReview, isEmpty,
     addSpot, setLevel, moveSpot, removeSpot,
-    addRadiation, removeRadiation, undo, reset,
+    addRadiation, removeRadiation, toggleSymptom, undo, reset,
     select, startRadiating, cancelMode, openCloseup, closeCloseup, setZoom, setHint,
     flagMissingLevels,
   };

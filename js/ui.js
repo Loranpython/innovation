@@ -96,8 +96,7 @@ export function createBackButton(ctx, target = "#/home") {
 
 /**
  * A sub-screen: toolbar with Back button + title, and a body to fill.
- * `actions`: optional element(s) on the right of the toolbar (e.g. a big
- * "Other symptoms" button).
+ * `actions`: optional element(s) on the right of the toolbar.
  * Returns { root, body }. Put your content in `body`, append `root` to the container.
  */
 export function createScreen(ctx, { title, backTo = "#/home", className = "", actions = null } = {}) {
