@@ -402,6 +402,9 @@ function detailsElement(row) {
       ]);
     case "pain":
       return painDetails(d);
+    case "symptom":
+      // General symptoms: a plain list, never shown as pain, no urgency.
+      return line(symptomList(d) || "?");
     default:
       return line(JSON.stringify(d), "nurse-detail nurse-detail-muted");
   }
@@ -481,6 +484,11 @@ function oldPainAreas(d) {
   }).join(", ");
 }
 
+/** "Nauseous, Dizzy" from { symptoms: ["nauseous", "dizzy"] }. Unknown ids are shown as they are. */
+function symptomList(d) {
+  return (Array.isArray(d.symptoms) ? d.symptoms : []).map((s) => label(`symptom.${s}`, s)).join(", ");
+}
+
 function isHighPain(row) {
   if (row.type !== "pain") return false;
   const d = row.details || {};
@@ -499,6 +507,7 @@ function summaryLine(row) {
     return t("nurse.detailLine", { type: typeLabel(row.type), value: label(`${row.type}.${d.item}`, d.item ?? "?") });
   }
   if (row.type === "speech") return d.translatedText ?? typeLabel("speech");
+  if (row.type === "symptom") return symptomList(d) || typeLabel("symptom");
   return row.patient;
 }
 

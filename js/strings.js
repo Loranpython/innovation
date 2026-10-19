@@ -15,7 +15,7 @@
   Keys for food items, drinks, body regions and pain sensations follow a
   fixed pattern, because the nurse page builds them from notification data:
       food.<item id>   drink.<item id>
-      pain.region.<region id>   pain.sensation.<sensation id>
+      pain.region.<region id>   pain.sensation.<sensation id>   symptom.<symptom id>
   (food items and pain sensations are only used to show OLDER requests.)
 */
 
@@ -28,7 +28,7 @@ export const STRINGS = {
 
     "home.toilet": "Toilet",
     "home.foodDrink": "Food & drink",
-    "home.pain": "Pain",
+    "home.pain": "Pain / unwell",
     "home.speech": "Speak",
 
     "foodDrink.title": "Food & drink",
@@ -128,6 +128,19 @@ export const STRINGS = {
     "pain.region.right_foot": "Right foot",
     "pain.region.left_foot": "Left foot",
 
+    // General symptoms (modules/symptoms), no body map, no level
+    "symptoms.button": "Other symptoms",
+    "symptoms.title": "How do you feel?",
+    "symptoms.hint": "Tap one or more. No need to point at the body.",
+    "symptoms.chooseFirst": "First tap how you feel",
+    "symptoms.reviewSend": "Review & send",
+    "symptoms.reviewTitle": "Check and send",
+    "symptoms.change": "Change",
+    "symptoms.send": "Send to nurse",
+    "symptom.nauseous": "Nauseous",
+    "symptom.anxious": "Anxious",
+    "symptom.dizzy": "Dizzy",
+
     "speech.title": "Speak",
     "speech.todo": "TODO: speech & translation module (in development)",
 
@@ -159,6 +172,7 @@ export const STRINGS = {
     "type.food": "Food",
     "type.pain": "Pain",
     "type.speech": "Speech",
+    "type.symptom": "General symptoms",
 
     // Nurse dashboard (nurse.html, js/nurse.js)
     "nurse.stationTitle": "Nurse station",
@@ -209,7 +223,7 @@ export const STRINGS = {
 
     "home.toilet": "Toilet",
     "home.foodDrink": "Eten & drinken",
-    "home.pain": "Pijn",
+    "home.pain": "Pijn / onwel",
     "home.speech": "Spreken",
 
     "foodDrink.title": "Eten & drinken",
@@ -309,6 +323,19 @@ export const STRINGS = {
     "pain.region.right_foot": "Rechtervoet",
     "pain.region.left_foot": "Linkervoet",
 
+    // General symptoms (modules/symptoms), no body map, no level
+    "symptoms.button": "Andere klachten",
+    "symptoms.title": "Hoe voelt u zich?",
+    "symptoms.hint": "Tik op één of meer. U hoeft niet op het lichaam te wijzen.",
+    "symptoms.chooseFirst": "Tik eerst hoe u zich voelt",
+    "symptoms.reviewSend": "Nakijken & versturen",
+    "symptoms.reviewTitle": "Nakijken en versturen",
+    "symptoms.change": "Wijzigen",
+    "symptoms.send": "Naar verpleegkundige sturen",
+    "symptom.nauseous": "Misselijk",
+    "symptom.anxious": "Angstig",
+    "symptom.dizzy": "Duizelig",
+
     "speech.title": "Spreken",
     "speech.todo": "TODO: spraak- en vertaalmodule (in ontwikkeling)",
 
@@ -339,6 +366,7 @@ export const STRINGS = {
     "type.food": "Eten",
     "type.pain": "Pijn",
     "type.speech": "Spraak",
+    "type.symptom": "Algemene klachten",
 
     // Nurse dashboard (nurse.html, js/nurse.js)
     "nurse.stationTitle": "Verpleegpost",
@@ -389,7 +417,7 @@ export const STRINGS = {
 
     "home.toilet": "Toalett",
     "home.foodDrink": "Mat og drikke",
-    "home.pain": "Smerte",
+    "home.pain": "Smerte / uvel",
     "home.speech": "Snakk",
 
     "foodDrink.title": "Mat og drikke",
@@ -489,6 +517,19 @@ export const STRINGS = {
     "pain.region.right_foot": "Høyre fot",
     "pain.region.left_foot": "Venstre fot",
 
+    // General symptoms (modules/symptoms), no body map, no level
+    "symptoms.button": "Andre plager",
+    "symptoms.title": "Hvordan har du det?",
+    "symptoms.hint": "Trykk på én eller flere. Du trenger ikke å peke på kroppen.",
+    "symptoms.chooseFirst": "Trykk først på hvordan du har det",
+    "symptoms.reviewSend": "Se over og send",
+    "symptoms.reviewTitle": "Se over og send",
+    "symptoms.change": "Endre",
+    "symptoms.send": "Send til sykepleier",
+    "symptom.nauseous": "Kvalm",
+    "symptom.anxious": "Engstelig",
+    "symptom.dizzy": "Svimmel",
+
     "speech.title": "Snakk",
     "speech.todo": "TODO: tale- og oversettelsesmodul (under utvikling)",
 
@@ -519,6 +560,7 @@ export const STRINGS = {
     "type.food": "Mat",
     "type.pain": "Smerte",
     "type.speech": "Tale",
+    "type.symptom": "Generelle symptomer",
 
     // Nurse dashboard (nurse.html, js/nurse.js)
     "nurse.stationTitle": "Sykepleierstasjon",

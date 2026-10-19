@@ -3,7 +3,7 @@
 
     🚻 Toilet        -> #/toilet      (sends the request immediately)
     🍽️ Food & drink  -> #/food-drink
-    😣 Pain          -> #/pain
+    😣 Pain / unwell -> #/pain   (with "Other symptoms" -> #/symptoms)
     🗣️ Speak         -> #/speech
 
   The icon is the main message (many patients cannot read the language),

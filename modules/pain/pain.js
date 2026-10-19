@@ -6,6 +6,8 @@
 
     Tap a body part -> close-up -> tap the exact place -> spot + editor.
     Spreads to: the "Spreads to →" button in the editor, then tap places.
+    Other symptoms (nauseous, anxious, dizzy): big button at the top,
+                goes to #/symptoms (no body map, no level).
 
   (The eight sensation types were removed after clinical feedback: they
   were ambiguous for patients with communication difficulties.)
@@ -248,7 +250,16 @@ export function render(container, ctx) {
   }
 
   // ---------------------------------------------------------------- panels
-  const { root, body } = createScreen(ctx, { title: t("pain.title"), className: "pain" });
+  const otherSymptoms = el("button", {
+    type: "button",
+    class: "pain-other-symptoms",
+    "aria-label": t("symptoms.button"),
+    onClick: () => ctx.navigate("#/symptoms"),
+  }, [
+    el("span", { class: "icon", "aria-hidden": "true" }, ["🤢😰😵"]),
+    el("span", {}, [t("symptoms.button")]),
+  ]);
+  const { root, body } = createScreen(ctx, { title: t("pain.title"), className: "pain", actions: otherSymptoms });
   const overlay = createOverlay(root);
   const sidePanel = createSidePanel({ t, store, viewLabel });
   const summaryBar = createSummaryBar({

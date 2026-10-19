@@ -59,14 +59,17 @@ export function createBackButton(ctx, target = "#/home") {
 
 /**
  * A sub-screen: toolbar with Back button + title, and a body to fill.
+ * `actions`: optional element(s) on the right of the toolbar (e.g. a big
+ * "Other symptoms" button).
  * Returns { root, body }. Put your content in `body`, append `root` to the container.
  */
-export function createScreen(ctx, { title, backTo = "#/home", className = "" } = {}) {
+export function createScreen(ctx, { title, backTo = "#/home", className = "", actions = null } = {}) {
   const body = el("div", { class: "screen-body" });
   const root = el("section", { class: `screen ${className}`.trim() }, [
     el("div", { class: "screen-toolbar" }, [
       createBackButton(ctx, backTo),
       title ? el("h1", { class: "screen-title" }, [title]) : null,
+      actions ? el("div", { class: "screen-toolbar-actions" }, [].concat(actions)) : null,
     ]),
     body,
   ]);

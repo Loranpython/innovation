@@ -15,6 +15,7 @@ const routes = {
   "#/food-drink": () => import("../modules/food-drink/food-drink.js"),
   "#/food":       () => import("../modules/food-drink/food.js"),
   "#/pain":       () => import("../modules/pain/pain.js"),
+  "#/symptoms":   () => import("../modules/symptoms/symptoms.js"),
   "#/speech":     () => import("../modules/speech/speech.js"),
   "#/sent":       () => import("../modules/sent/sent.js"),
 };

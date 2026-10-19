@@ -99,3 +99,12 @@ end $$;
 -- Demo reset (run manually in the SQL Editor when you want a clean list):
 --   delete from public.notifications;
 -- =====================================================================
+
+-- =====================================================================
+-- 6. Migration 002 (already applied 2026-10-19, see
+--    supabase/migrations/002_symptom_type.sql): allow type 'symptom'
+--    for general symptoms (nauseous, anxious, dizzy).
+-- =====================================================================
+alter table public.notifications drop constraint if exists notifications_type_check;
+alter table public.notifications add constraint notifications_type_check
+  check (type in ('toilet', 'drink', 'food', 'pain', 'speech', 'symptom'));

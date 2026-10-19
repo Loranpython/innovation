@@ -148,10 +148,21 @@ button:disabled {
 
 .screen-toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--pad);
   min-height: var(--toolbar-h);
   flex: 0 0 auto;
+}
+/* Optional big button(s) on the right of the toolbar */
+.screen-toolbar-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+@media (max-width: 700px) {
+  .screen-toolbar-actions { flex: 1 1 100%; }
+  .screen-toolbar-actions > * { flex: 1 1 auto; }
 }
 
 .screen-title {

@@ -93,6 +93,21 @@
 }
 .pain-side-hint-icon { font-size: 40px; }
 
+/* "Other symptoms" (nauseous, anxious, dizzy): big and visible at the top */
+.pain-other-symptoms {
+  min-height: var(--toolbar-h);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 0 24px;
+  background: var(--accent-pain);
+  border-width: 3px;
+  font-size: 22px;
+  font-weight: bold;
+}
+.pain-other-symptoms .icon { font-size: 32px; letter-spacing: 2px; }
+
 /* A white panel with our 2px border */
 .pain-box {
   background: var(--color-surface);

@@ -3,7 +3,7 @@
 
   Every screen calls (via ctx):
       ctx.sendNotification({ type, details })
-        type:    "toilet" | "drink" | "food" | "pain" | "speech"
+        type:    "toilet" | "drink" | "food" | "pain" | "speech" | "symptom"
         details: object with type-specific data, e.g. { item: "water" }
         icon:    (optional) emoji shown on the confirmation screen; NOT sent
 
@@ -41,6 +41,7 @@ export const TYPE_ICONS = {
   food: "🍽️",
   pain: "😣",
   speech: "🗣️",
+  symptom: "🩺",
 };
 
 let patientInfo = { patient: "Patient", room: "1" };
