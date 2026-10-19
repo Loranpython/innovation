@@ -13,7 +13,6 @@ const routes = {
   "#/home":       () => import("../modules/home/home.js"),
   "#/toilet":     () => import("../modules/toilet/toilet.js"),
   "#/food-drink": () => import("../modules/food-drink/food-drink.js"),
-  "#/food":       () => import("../modules/food-drink/food.js"),
   "#/pain":       () => import("../modules/pain/pain.js"),
   "#/symptoms":   () => import("../modules/symptoms/symptoms.js"),
   "#/speech":     () => import("../modules/speech/speech.js"),

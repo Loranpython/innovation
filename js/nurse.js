@@ -392,7 +392,7 @@ function detailsElement(row) {
       return null;
     case "drink":
     case "food":
-      return line(t("nurse.detailLine", { type: typeLabel(row.type), value: label(`${row.type}.${d.item}`, d.item ?? "?") }));
+      return line(foodDrinkText(row.type, d));
     case "speech":
       return el("div", { class: "nurse-detail" }, [
         line(t("nurse.detailLine", { type: typeLabel("speech"), value: d.translatedText ?? d.originalText ?? "" })),
@@ -484,6 +484,16 @@ function oldPainAreas(d) {
   }).join(", ");
 }
 
+/**
+ * "Food requested" for the generic food request (no item: the hospital
+ * chooses food that fits the diet). Older requests with an item still read
+ * "Food: Sandwich"; drinks read "Drink: Water".
+ */
+function foodDrinkText(type, d) {
+  if (type === "food" && !d.item) return t("nurse.foodRequested");
+  return t("nurse.detailLine", { type: typeLabel(type), value: label(`${type}.${d.item}`, d.item ?? "?") });
+}
+
 /** "Nauseous, Dizzy" from { symptoms: ["nauseous", "dizzy"] }. Unknown ids are shown as they are. */
 function symptomList(d) {
   return (Array.isArray(d.symptoms) ? d.symptoms : []).map((s) => label(`symptom.${s}`, s)).join(", ");
@@ -503,9 +513,7 @@ function summaryLine(row) {
     const n = d.maxLevel ?? d.level;
     return n !== undefined && n !== null ? t("nurse.worstPainLine", { n }) : typeLabel("pain");
   }
-  if (row.type === "food" || row.type === "drink") {
-    return t("nurse.detailLine", { type: typeLabel(row.type), value: label(`${row.type}.${d.item}`, d.item ?? "?") });
-  }
+  if (row.type === "food" || row.type === "drink") return foodDrinkText(row.type, d);
   if (row.type === "speech") return d.translatedText ?? typeLabel("speech");
   if (row.type === "symptom") return symptomList(d) || typeLabel("symptom");
   return row.patient;

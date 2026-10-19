@@ -35,7 +35,9 @@ export const STRINGS = {
     "foodDrink.food": "Food",
     "drink.water": "Water",
 
-    "food.title": "What would you like to eat?",
+    "food.alreadyRequested": "Food already requested",
+    "food.requestedAt": "at {time}",
+    // Only for OLDER food requests on the nurse dashboard (no longer a choice)
     "food.sandwich": "Sandwich",
     "food.yoghurt": "Yoghurt",
     "food.fruit": "Fruit",
@@ -219,6 +221,7 @@ export const STRINGS = {
     "nurse.feelsLine": "Feels: {sensations}",
     "nurse.spreadsLine": "spreads to {places}",
     "nurse.detailLine": "{type}: {value}",
+    "nurse.foodRequested": "Food requested",
     "nurse.speechOriginal": "Original ({lang}): “{text}”",
     "nurse.notifyTitle": "🔔 Room {room}: {type} request",
     "nurse.updateFailed": "Could not update: {error}",
@@ -240,7 +243,9 @@ export const STRINGS = {
     "foodDrink.food": "Eten",
     "drink.water": "Water",
 
-    "food.title": "Wat wilt u eten?",
+    "food.alreadyRequested": "Eten al gevraagd",
+    "food.requestedAt": "om {time}",
+    // Only for OLDER food requests on the nurse dashboard (no longer a choice)
     "food.sandwich": "Boterham",
     "food.yoghurt": "Yoghurt",
     "food.fruit": "Fruit",
@@ -423,6 +428,7 @@ export const STRINGS = {
     "nurse.feelsLine": "Voelt: {sensations}",
     "nurse.spreadsLine": "straalt uit naar {places}",
     "nurse.detailLine": "{type}: {value}",
+    "nurse.foodRequested": "Eten gevraagd",
     "nurse.speechOriginal": "Origineel ({lang}): “{text}”",
     "nurse.notifyTitle": "🔔 Kamer {room}: {type}",
     "nurse.updateFailed": "Bijwerken mislukt: {error}",
@@ -444,7 +450,9 @@ export const STRINGS = {
     "foodDrink.food": "Mat",
     "drink.water": "Vann",
 
-    "food.title": "Hva vil du spise?",
+    "food.alreadyRequested": "Mat er allerede bestilt",
+    "food.requestedAt": "kl. {time}",
+    // Only for OLDER food requests on the nurse dashboard (no longer a choice)
     "food.sandwich": "Smørbrød",
     "food.yoghurt": "Yoghurt",
     "food.fruit": "Frukt",
@@ -627,6 +635,7 @@ export const STRINGS = {
     "nurse.feelsLine": "Kjennes: {sensations}",
     "nurse.spreadsLine": "stråler ut til {places}",
     "nurse.detailLine": "{type}: {value}",
+    "nurse.foodRequested": "Mat ønsket",
     "nurse.speechOriginal": "Original ({lang}): «{text}»",
     "nurse.notifyTitle": "🔔 Rom {room}: {type}",
     "nurse.updateFailed": "Kunne ikke oppdatere: {error}",

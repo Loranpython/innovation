@@ -5,6 +5,7 @@
       ctx.sendNotification({ type, details })
         type:    "toilet" | "drink" | "food" | "pain" | "speech" | "symptom"
         details: object with type-specific data, e.g. { item: "water" }
+                 (food: {} — the hospital chooses; see modules/food-drink)
         icon:    (optional) emoji shown on the confirmation screen; NOT sent
 
   It returns a Promise of { ok, mode: "online" | "local", id }.
