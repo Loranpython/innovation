@@ -8,17 +8,28 @@
 
   update() changes the existing elements in place, so a slider drag keeps
   working while the rest of the screen re-renders.
+
+  Voice assistance says "Pain level 4": at once for a face, when the finger
+  is lifted for the slider, and after a short pause for arrow keys, so it
+  never rattles off every number while dragging.
 */
 
 import { el } from "../../js/ui.js";
+import { speak } from "../../js/voice.js";
 import { faceSvg } from "./pain-faces.js";
 
 const FACE_VALUES = [0, 2, 4, 6, 8, 10];
 const LEVELS = Array.from({ length: 11 }, (_, i) => i);   // 0..10
+const KEY_SPEAK_DELAY_MS = 450;
 
 export function createLevelPicker({ t, heading, onChange }) {
   let level = null;
+  let keyTimer = null;
   const setLevel = (value) => onChange(Math.min(10, Math.max(0, value)));
+  const announce = () => {
+    clearTimeout(keyTimer);
+    if (level !== null) speak(t("pain.levelAria", { n: level }));
+  };
 
   const valueOutput = el("output", { class: "pain-value", "aria-live": "polite" });
 
@@ -29,7 +40,10 @@ export function createLevelPicker({ t, heading, onChange }) {
       style: `--face-colour: var(--pain-scale-${value})`,
       "aria-label": t("pain.levelAria", { n: value }),
       "data-focus-key": `face:${value}`,
-      onClick: () => setLevel(value),
+      onClick: () => {
+        setLevel(value);
+        announce();
+      },
     });
     button.innerHTML = faceSvg(value);
     button.append(el("span", { class: "pain-face-number" }, [String(value)]));
@@ -66,6 +80,7 @@ export function createLevelPicker({ t, heading, onChange }) {
   slider.addEventListener("pointermove", (event) => {
     if (slider.hasPointerCapture(event.pointerId)) setLevel(levelFromPointer(event));
   });
+  slider.addEventListener("pointerup", announce);   // one word when the finger is lifted
   slider.addEventListener("keydown", (event) => {
     const current = level ?? 0;
     const keys = {
@@ -75,6 +90,8 @@ export function createLevelPicker({ t, heading, onChange }) {
     if (!(event.key in keys)) return;
     event.preventDefault();
     setLevel(level === null && event.key !== "Home" && event.key !== "End" ? current : keys[event.key]);
+    clearTimeout(keyTimer);
+    keyTimer = setTimeout(announce, KEY_SPEAK_DELAY_MS);
   });
 
   const root = el("section", { class: "pain-box pain-level" }, [

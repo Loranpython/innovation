@@ -18,6 +18,7 @@
 */
 
 import { createScreen, el } from "../../js/ui.js";
+import { speak } from "../../js/voice.js";
 
 export const SYMPTOMS = [
   { id: "nauseous", icon: "🤢" },
@@ -77,6 +78,7 @@ export function render(container, ctx) {
       if (selected.size === 0) {
         hint.textContent = t("symptoms.chooseFirst");
         hint.classList.add("is-warning");
+        speak(t("symptoms.chooseFirst"));
         return;
       }
       showReview();
@@ -89,8 +91,14 @@ export function render(container, ctx) {
   ]);
 
   function toggle(id) {
-    if (selected.has(id)) selected.delete(id);
-    else selected.add(id);
+    const label = t(`symptom.${id}`);
+    if (selected.has(id)) {
+      selected.delete(id);
+      speak(t("voice.removed", { item: label }));
+    } else {
+      selected.add(id);
+      speak(label);
+    }
     for (const tile of tiles) {
       tile.setAttribute("aria-pressed", String(selected.has(tile.dataset.symptom)));
     }
@@ -106,6 +114,7 @@ export function render(container, ctx) {
 
   function showReview() {
     const list = chosen();
+    speak(`${t("symptoms.reviewTitle")}: ${list.map((symptom) => t(`symptom.${symptom.id}`)).join(", ")}`);
     const review = el("section", {
       class: "symptoms-review",
       role: "region",

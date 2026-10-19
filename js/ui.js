@@ -2,14 +2,17 @@
   ui.js — small shared helpers to build the interface.
 
     el(tag, attrs, children)       create any HTML element in one line
-    renderHeader(headerEl, ctx)    fill the top bar: "Room 12 · Jansen"
+    renderHeader(headerEl, ctx)    fill the top bar: "Room 12 · Jansen" + voice toggle
     createScreen(ctx, options)     sub-screen with ← Back button + title
     createBackButton(ctx, target)  square "← Back" button
     createTileGrid(cols, rows)     grid that keeps its tiles square
     createTile(options)            one big square tile (icon + label)
 
   Every interactive element is a real <button> with an aria-label.
+  Tiles and the Back button say their label when voice assistance is on.
 */
+
+import { speak, isSpeechSupported, isVoiceEnabled, setVoiceEnabled, onVoiceChange } from "./voice.js";
 
 /**
  * Create an element.
@@ -34,13 +37,44 @@ export function el(tag, attrs = {}, children = []) {
   return element;
 }
 
-/** Fill the header bar with room + patient name. */
+/** Fill the header bar with room + patient name and the voice toggle. */
 export function renderHeader(headerEl, ctx) {
   headerEl.replaceChildren(
     el("span", { class: "app-header-info" }, [
       ctx.t("header.roomPatient", { room: ctx.room, patient: ctx.patient }),
-    ])
+    ]),
+    createVoiceToggle(ctx),
   );
+}
+
+/**
+ * "🔊 Voice ON / OFF" (aria-pressed). Staff can also turn it on with ?voice=1.
+ * Without speech synthesis in the browser it is shown disabled.
+ */
+function createVoiceToggle(ctx) {
+  const icon = el("span", { class: "icon", "aria-hidden": "true" });
+  const state = el("span", { class: "voice-toggle-state", "aria-hidden": "true" });
+  const supported = isSpeechSupported();
+  const button = el("button", {
+    type: "button",
+    class: "voice-toggle",
+    "aria-label": ctx.t("voice.toggle"),
+    title: supported ? ctx.t("voice.toggle") : ctx.t("voice.unavailable"),
+    disabled: !supported,
+    onClick: () => {
+      setVoiceEnabled(!isVoiceEnabled());
+      speak(ctx.t("voice.enabled"));          // only heard when it was just switched on
+    },
+  }, [icon, el("span", {}, [ctx.t("voice.short")]), state]);
+
+  function update(on) {
+    button.setAttribute("aria-pressed", String(supported && on));
+    icon.textContent = supported && on ? "🔊" : "🔇";
+    state.textContent = ctx.t(supported && on ? "voice.on" : "voice.off");
+  }
+  update(isVoiceEnabled());
+  onVoiceChange(update);
+  return button;
 }
 
 /** Square "← Back" button. Goes to `target` (default: home). */
@@ -50,7 +84,10 @@ export function createBackButton(ctx, target = "#/home") {
     class: "back-button",
     type: "button",
     "aria-label": label,
-    onClick: () => ctx.navigate(target),
+    onClick: () => {
+      speak(label);
+      ctx.navigate(target);
+    },
   }, [
     el("span", { class: "icon", "aria-hidden": "true" }, ["←"]),
     el("span", {}, [label]),
@@ -97,7 +134,10 @@ export function createTile({ icon, label, accent, onClick }) {
     type: "button",
     "data-accent": accent,
     "aria-label": label,
-    onClick,
+    onClick: (event) => {
+      speak(label);
+      onClick?.(event);
+    },
   }, [
     el("span", { class: "icon tile-icon", "aria-hidden": "true" }, [icon]),
     el("span", { class: "tile-label" }, [label]),

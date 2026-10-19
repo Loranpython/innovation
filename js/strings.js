@@ -144,6 +144,16 @@ export const STRINGS = {
     "speech.title": "Speak",
     "speech.todo": "TODO: speech & translation module (in development)",
 
+    // Voice assistance (js/voice.js): spoken feedback, header toggle
+    "voice.toggle": "Voice assistance",
+    "voice.short": "Voice",
+    "voice.on": "On",
+    "voice.off": "Off",
+    "voice.enabled": "Voice assistance on",
+    "voice.unavailable": "Voice assistance is not available in this browser",
+    "voice.removed": "{item} removed",
+    "voice.offlineWarning": "Warning. Your request did NOT reach the nurse. If you need help now, use the call button by your bed.",
+
     "sent.notified": "The nurse has been notified",
     "sent.alreadySent": "Already sent, the nurse is on the way",
     "sent.backToStart": "Back to start",
@@ -339,6 +349,16 @@ export const STRINGS = {
     "speech.title": "Spreken",
     "speech.todo": "TODO: spraak- en vertaalmodule (in ontwikkeling)",
 
+    // Voice assistance (js/voice.js): spoken feedback, header toggle
+    "voice.toggle": "Voorlezen",
+    "voice.short": "Voorlezen",
+    "voice.on": "Aan",
+    "voice.off": "Uit",
+    "voice.enabled": "Voorlezen staat aan",
+    "voice.unavailable": "Voorlezen werkt niet in deze browser",
+    "voice.removed": "{item} weggehaald",
+    "voice.offlineWarning": "Opgelet. Uw vraag is NIET bij de verpleegkundige aangekomen. Hebt u nu hulp nodig? Gebruik de belknop aan uw bed.",
+
     "sent.notified": "De verpleegkundige is verwittigd",
     "sent.alreadySent": "Al verstuurd, de verpleegkundige is onderweg",
     "sent.backToStart": "Terug naar start",
@@ -532,6 +552,16 @@ export const STRINGS = {
 
     "speech.title": "Snakk",
     "speech.todo": "TODO: tale- og oversettelsesmodul (under utvikling)",
+
+    // Voice assistance (js/voice.js): spoken feedback, header toggle
+    "voice.toggle": "Opplesning",
+    "voice.short": "Opplesning",
+    "voice.on": "På",
+    "voice.off": "Av",
+    "voice.enabled": "Opplesning er på",
+    "voice.unavailable": "Opplesning virker ikke i denne nettleseren",
+    "voice.removed": "{item} fjernet",
+    "voice.offlineWarning": "Advarsel. Forespørselen din kom IKKE fram til sykepleieren. Trenger du hjelp nå? Bruk ringeknappen ved sengen.",
 
     "sent.notified": "Sykepleieren har fått beskjed",
     "sent.alreadySent": "Allerede sendt, sykepleieren er på vei",

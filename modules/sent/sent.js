@@ -9,9 +9,12 @@
              never believe a request reached the nurse when it did not.
     duplicate (same request < 10 s ago): "Already sent, the nurse is on the way"
   Goes back to home automatically after a visible countdown.
+  Voice assistance says the outcome; the offline case is a clearly
+  different warning ("Warning. Your request did NOT reach the nurse…").
 */
 
 import { el } from "../../js/ui.js";
+import { speak } from "../../js/voice.js";
 
 const AUTO_RETURN_SECONDS = 6;
 const WARNING_RETURN_SECONDS = 12;   // more time to read the warning
@@ -51,6 +54,7 @@ export function render(container, ctx) {
   container.append(section);
 
   if (!result || result.duplicate) {
+    if (result) speak(ctx.t("sent.alreadySent"), { queue: true });
     startCountdown(ctx, countdown, AUTO_RETURN_SECONDS);
     return;
   }
@@ -62,6 +66,7 @@ export function render(container, ctx) {
     if (outcome.mode === "online") {
       mark.textContent = "✅";
       message.textContent = ctx.t("sent.notified");
+      speak(ctx.t("sent.notified"), { queue: true });   // after "Water", "Toilet", …
       startCountdown(ctx, countdown, AUTO_RETURN_SECONDS);
     } else {
       section.classList.add("sent--local");
@@ -69,6 +74,7 @@ export function render(container, ctx) {
       message.textContent = ctx.t("sent.localMode");
       hint.textContent = ctx.t("sent.localModeHint");
       hint.hidden = false;
+      speak(ctx.t("voice.offlineWarning"));             // replaces anything else
       startCountdown(ctx, countdown, WARNING_RETURN_SECONDS);
     }
   });

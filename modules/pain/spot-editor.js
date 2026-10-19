@@ -15,6 +15,7 @@
 */
 
 import { el } from "../../js/ui.js";
+import { speak } from "../../js/voice.js";
 import { radiatingIcon } from "./pain-icons.js";
 import { regionName } from "./body-regions.js";
 import { markerSvg } from "./body-map.js";
@@ -57,7 +58,14 @@ export function createSidePanel({ t, store, viewLabel }) {
       class: "pain-spreads",
       "aria-label": t("pain.spreadsToButton"),
       "data-focus-key": "editor:spreads",
-      onClick: () => (store.state.mode === "radiating" ? store.cancelMode() : store.startRadiating()),
+      onClick: () => {
+        if (store.state.mode === "radiating") {
+          store.cancelMode();
+        } else {
+          speak(t("pain.radiateHint"));
+          store.startRadiating();
+        }
+      },
     });
     spreadButton.innerHTML = radiatingIcon();
     spreadButton.append(el("span", {}, [t("pain.spreadsToButton")]));

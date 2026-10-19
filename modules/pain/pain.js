@@ -24,8 +24,9 @@
 */
 
 import { createScreen, el } from "../../js/ui.js";
+import { speak } from "../../js/voice.js";
 import { createPainStore, ZOOM_MIN, ZOOM_MAX, ZOOM_STEP } from "./pain-state.js";
-import { createBodyMap, fitMarkers, screenToSvg, regionAtPoint } from "./body-map.js";
+import { createBodyMap, fitMarkers, screenToSvg, regionAtPoint, spotDescription } from "./body-map.js";
 import { headIcon } from "./body-details.js";
 import { findRegion, toPatientRegion, regionName, englishRegionLabel } from "./body-regions.js";
 import { faceEmoji } from "./pain-faces.js";
@@ -71,18 +72,30 @@ export function render(container, ctx) {
   const viewTitle = (view) => t(view === "front" ? "pain.viewFrontLabel" : "pain.viewBackLabel");
 
   // ---------------------------------------------------------------- taps on the body
-  /** A body part was tapped (whole view or close-up) at drawing point x, y. */
+  /**
+   * A body part was tapped (whole view or close-up) at drawing point x, y.
+   * Voice: the PATIENT-perspective name ("Left thigh"), via toPatientRegion.
+   */
   function regionTapped(view, drawId, x, y, inCloseup) {
+    const place = regionName(toPatientRegion(drawId, view), t);
     if (state.mode === "radiating") {
       const origin = store.selectedSpot();
-      if (!origin) store.setHint("pain.radiatePickOrigin");
-      else store.addRadiation(origin.id, { view, drawId, x, y });
+      if (!origin) {
+        store.setHint("pain.radiatePickOrigin");
+        speak(t("pain.radiatePickOrigin"));
+      } else if (store.addRadiation(origin.id, { view, drawId, x, y })) {
+        speak(`${t("pain.spreadsTo")}: ${place}`);
+      } else {
+        speak(t("pain.radiateSameSide"));
+      }
       return;
     }
     if (!inCloseup) {
+      speak(place);
       store.openCloseup(view, drawId);
       return;
     }
+    speak(`${place}. ${t("pain.spotLevelHeading")}`);
     store.addSpot({ view, drawId, x, y });
   }
 
@@ -97,6 +110,7 @@ export function render(container, ctx) {
       }
       return;
     }
+    speak(spotDescription(spot, t));
     store.select(spotId);
   }
 
@@ -254,7 +268,10 @@ export function render(container, ctx) {
     type: "button",
     class: "pain-other-symptoms",
     "aria-label": t("symptoms.button"),
-    onClick: () => ctx.navigate("#/symptoms"),
+    onClick: () => {
+      speak(t("symptoms.button"));
+      ctx.navigate("#/symptoms");
+    },
   }, [
     el("span", { class: "icon", "aria-hidden": "true" }, ["🤢😰😵"]),
     el("span", {}, [t("symptoms.button")]),
@@ -265,7 +282,10 @@ export function render(container, ctx) {
   const summaryBar = createSummaryBar({
     t,
     store,
-    onReview: () => openReview({ overlay, t, store, viewLabel, onSend: send }),
+    onReview: () => {
+      speak(`${t("pain.reviewTitle")}. ${t("pain.worstPainShort")}: ${store.maxLevel()}`);
+      openReview({ overlay, t, store, viewLabel, onSend: send });
+    },
     onStartOver: () => openConfirm({ overlay, t, onConfirm: () => store.reset() }),
   });
 

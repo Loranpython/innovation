@@ -12,13 +12,16 @@
   The Home screen shows getVisibleRequests() and re-draws on
   onRequestsChange(). Visible = not resolved, or resolved < 2 minutes ago.
   When a request becomes "acknowledged" a soft ding plays (if audio is
-  unlocked, i.e. the patient has tapped the screen before).
+  unlocked, i.e. the patient has tapped the screen before), and voice
+  assistance (if on) says "Your nurse has seen your request".
 
   A request that no longer exists in the database (demo reset) is dropped.
 */
 
 import * as backend from "./backend.js";
 import { playDing } from "./sound.js";
+import { speak } from "./voice.js";
+import { t } from "./strings.js";
 
 const STORAGE_KEY = "pcs_my_requests";
 const POLL_MS = 15_000;
@@ -90,7 +93,10 @@ function applyRows(rows) {
     const request = requests.find((r) => r.id === row?.id);
     if (!request || !(row.status in RANK)) continue;
     if (RANK[row.status] <= RANK[request.status]) continue;   // only forward
-    if (row.status === "acknowledged") playDing({ volume: 0.12, notes: [660, 880] });
+    if (row.status === "acknowledged") {
+      playDing({ volume: 0.12, notes: [660, 880] });
+      speak(t("requests.acknowledged"), { queue: true });
+    }
     if (row.status === "resolved") request.doneAt = Date.now();
     request.status = row.status;
     changed = true;
