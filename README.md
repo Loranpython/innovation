@@ -51,7 +51,7 @@ Eivind Kvernø, intensive care nurse and supervisor of a simulation unit, tested
 | Feedback | Change |
 |----------|--------|
 | The eight pain sensations (sharp, burning, aching, throbbing, shooting, tingling, cramping, numb) aren't universal and are ambiguous, especially for patients with communication difficulties. | **Removed** from the patient screen. Pain is now *where* (front/back body map, several spots, close-up) + *how bad* (0–10 per spot), with optional **Spreads to →**. Older saved requests with sensations still display on the nurse dashboard. The freed space makes the body figures larger: **430 px → 554 px** tall at 1280×800, still without scrolling. |
-| Nausea, anxiety and dizziness are not tied to a place on the body. | Big pictogram tiles for **Nauseous, Anxious, Dizzy** directly on the pain screen, under "Or how do you feel?", visible without an extra tap. Choose one or more (no body click, no level) and send them **together** with any pain spots in one request. The nurse sees them as **General symptoms** when sent alone, or as an "Also feels: …" line on the pain card. Never as pain, and no urgency or diagnosis is derived automatically. The Home tile is **Pain / unwell** (nl *Pijn / onwel*, no *Smerte / uvel*). The old `#/symptoms` screen now redirects to `#/pain`. |
+| Nausea, anxiety and dizziness are not tied to a place on the body. | Big tiles for **Nauseous, Dizzy, Cold, Hot** (2 × 2) directly on the pain screen, under "Or how do you feel?", visible without an extra tap. A body spot can also be a symptom instead of pain ("cold feet", "hot forehead"): the spot editor asks **What do you feel here?** (Pain, Nauseous, Dizzy, Cold, Hot); only pain asks for a level. Everything is sent **together** in one request. All five icons are one drawn SVG set (`modules/pain/symptom-icons.js`, preview in `icons-preview.html`), also used on the nurse dashboard. Never shown as pain, and no urgency or diagnosis is derived automatically. *Anxious* was removed (old requests still show). The Home tile is **Pain / unwell** (nl *Pijn / onwel*, no *Smerte / uvel*). The old `#/symptoms` screen redirects to `#/pain`. |
 | Visually impaired patients need spoken feedback. | Optional **voice assistance** with the browser's own `speechSynthesis` (`js/voice.js`): it speaks tiles ("Food", "Water"), body regions in the patient's own left/right ("Left lower leg"), "Pain level 4", symptoms, "The nurse has been notified", a clearly different offline warning and "Your nurse has seen your request". In English, Dutch or Norwegian, if the device has a voice for that language; otherwise the browser's default voice is used. Turned on with `?voice=1` by staff or the header toggle. |
 | Patients shouldn't choose specific food: the hospital decides what fits their diet. Repeated food requests flood the nurses. | Food & drink is now just **Water** and **Food**. Food sends a generic request ("Food requested"). Food can be asked **once per 30 minutes** per room + patient: pressing it again sends nothing and shows a neutral ✓ **"Food already requested at 12:40"**. Water is never limited: a thirsty patient must always be able to ask. |
 
@@ -124,8 +124,7 @@ innovation/
     ├── toilet/toilet.js            # sends "toilet" immediately
     ├── food-drink/food-drink.js    # Water / Food (generic food request)
     ├── food-drink/food-cooldown.js # Food: once per 30 minutes per room + patient
-    ├── pain/                       # pain module (body chart + level per spot)
-    ├── symptoms/                   # nauseous, anxious, dizzy tiles (used on the pain screen)
+    ├── pain/                       # pain module (body chart: pain or a symptom per spot, general symptoms)
     ├── speech/                     # speech/translation module (placeholder)
     └── sent/sent.js                # "The nurse has been notified" (or the offline warning)
 supabase/
@@ -171,8 +170,8 @@ The same request type can't be sent twice within 10 seconds. The patient then se
 | `toilet` | `{}` | Toilet |
 | `drink` | `{ item: "water" }` | Drink: Water |
 | `food` | `{}` (older: `{ item: "sandwich" }`) | Food requested (older: Food: Sandwich) |
-| `pain` | `{ maxLevel, spots: [...], symptoms: [...] }` (see `modules/pain/README.md`) | Worst pain + one line per spot (+ "Also feels: nauseous"), HIGH PAIN badge for 7+ |
-| `symptom` | `{ symptoms: ["nauseous", "dizzy"] }` | General symptoms: Nauseous, Dizzy |
+| `pain` | `{ maxLevel, spots: [{ ..., kind, level }], symptoms: [...] }` (see `modules/pain/README.md`) | Worst pain + one line per spot (level, or the symptom with its icon) + "Also feels: nauseous", HIGH PAIN badge for 7+ |
+| `symptom` | `{ symptoms: ["nauseous"], spots: [{ number, view, region, regionLabel, kind, x, y }] }` (older: only `symptoms`) | Symptoms: "1 · Head (front) Hot", "Also feels: nauseous", with icons |
 | `speech` | `{ originalText, originalLang, translatedText, targetLang }` | the translated text |
 
 ## Who works on what
@@ -181,7 +180,7 @@ The same request type can't be sent twice within 10 seconds. The patient then se
 |------|--------|-------|
 | Pain module | `modules/pain/` (see its README) | pain teammate |
 | Speech & translation | `modules/speech/` (see its README) | speech teammate |
-| Everything else | `js/`, `css/`, other modules (incl. `modules/symptoms/`) | core team |
+| Everything else | `js/`, `css/`, other modules | core team |
 
 **Only edit your own folder**, plus a one-line route in `js/router.js` and your own keys in `js/strings.js` if needed. This keeps merge conflicts to a minimum.
 

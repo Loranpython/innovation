@@ -183,7 +183,7 @@ export function createPainStore() {
   }
 
   // ---------------------------------------------------------------- symptoms
-  /** Select or unselect a general symptom (nauseous, anxious, dizzy). */
+  /** Select or unselect a general symptom (nauseous, dizzy, cold, hot). */
   function toggleSymptom(id) {
     commit(() => {
       state.symptoms = state.symptoms.includes(id)
