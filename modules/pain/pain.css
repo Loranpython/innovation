@@ -448,10 +448,11 @@
 }
 .pain-summary-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: auto auto minmax(0, 1fr);   /* one row: the spot editor needs the height */
   gap: 8px;
 }
-.pain-summary-actions .big-button { grid-column: 1 / -1; }
+.pain-summary-actions > button { padding: 0 12px; line-height: 1.1; }
+.pain-summary-actions .big-button { font-size: 21px; white-space: normal; }
 .pain-summary .big-button { min-height: 64px; }
 .pain-start-over { min-height: 64px; }
 
@@ -552,6 +553,11 @@
 .pain-spot.is-moving { pointer-events: none; opacity: 0.85; }
 .pain-spot:focus { outline: none; }
 .pain-spot-dot { stroke: var(--color-text); stroke-width: 1.5; }
+/* Symptom spot: the drawn icon + a dark number badge */
+.pain-spot-hit { fill: transparent; }
+.pain-spot-icon * { vector-effect: none !important; }
+.pain-spot-badge { fill: var(--color-text); stroke: var(--color-surface); stroke-width: 1.5; }
+.pain-spot-number.pain-spot-badge-number { fill: var(--color-surface); }
 .pain-spot-number {
   font-family: Arial, Helvetica, sans-serif;
   font-weight: bold;
@@ -611,13 +617,16 @@
 .pain-body.is-radiating .body-region { cursor: crosshair; }
 
 /* ---------- spot editor (a spot is selected) ---------- */
+.pain-editor [hidden] { display: none !important; }
 .pain-editor {
   flex: 1 1 auto;
   min-height: 0;
+  overflow-y: auto;                    /* safety net; normally everything fits */
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
+.pain-editor .pain-level { padding-top: 4px; padding-bottom: 4px; gap: 4px; }
 .pain-editor-head {
   flex: 0 0 auto;
   display: flex;
@@ -633,7 +642,35 @@
   background: var(--color-text);
   color: var(--color-surface);
 }
-.pain-level.is-missing { outline: 3px dashed var(--pain-accent); outline-offset: -6px; }
+.pain-level.is-missing,
+.pain-kind.is-missing { outline: 3px dashed var(--pain-accent); outline-offset: -6px; }
+
+/* "What do you feel here?": Pain, Nauseous, Dizzy, Cold, Hot in one row */
+.pain-kind {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px 8px;
+}
+.pain-kind-heading { font-size: 18px; font-weight: bold; }
+.pain-kind-grid {
+  container-type: inline-size;
+  display: grid;
+  grid-template-columns: repeat(5, auto);
+  justify-content: space-between;
+  gap: 6px;
+}
+.pain-kind-grid > .symptom-tile {
+  --tile: max(var(--touch-min), min(calc((100cqw - 4 * 6px) / 5), 74px));
+  min-width: 0;
+  padding: 2px;
+  gap: 2px;
+}
+.pain-kind-grid .tile-icon { font-size: calc(var(--tile) * 0.34); }
+.pain-kind-grid .symptom-tile .tile-label { font-size: clamp(12px, calc(var(--tile) * 0.16), 17px); line-height: 1.1; overflow-wrap: anywhere; }
+.pain-kind-grid .symptom-tile[aria-pressed="true"] { outline-width: 4px; outline-offset: -8px; }
+.pain-kind-grid .symptom-check { width: 22px; height: 22px; font-size: 16px; }
 .pain-editor-actions {
   flex: 0 0 auto;
   display: flex;

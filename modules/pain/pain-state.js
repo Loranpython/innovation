@@ -1,8 +1,9 @@
 /*
   pain-state.js — the single source of truth for the pain screen. No DOM.
 
-  The patient places PAIN SPOTS. Every spot has its own location, level
-  and (optional) places the pain spreads to:
+  The patient places SPOTS on the body. Every spot has its own location
+  and KIND: pain (with a level and optional places it spreads to) or a
+  symptom felt at that place (nauseous, dizzy, cold, hot):
 
     spot = {
       id, number,                 // number 1, 2, 3… is shown on the marker
@@ -10,9 +11,12 @@
       drawId,                     // drawn shape (internal, see body-regions.js)
       region,                     // PATIENT-perspective region id
       x, y,                       // coordinates in the 240 × 580 drawing
-      level: null | 0..10,        // null until the patient chooses
-      radiatesTo: [{ view, drawId, region, x, y }]   // same view as the spot
+      kind: null | "pain" | "nauseous" | "dizzy" | "cold" | "hot",   // null until chosen
+      level: null | 0..10,        // pain only; null until the patient chooses
+      radiatesTo: [{ view, drawId, region, x, y }]   // pain only, same view as the spot
     }
+
+  A spot is COMPLETE when it has a kind, and a level if the kind is pain.
 
   General symptoms (no place, no level) chosen on the same screen:
     symptoms: ["nauseous", "dizzy"]     // ids from symptoms.js
@@ -28,6 +32,11 @@
 import { toPatientRegion } from "./body-regions.js";
 
 const HISTORY_LIMIT = 100;
+
+/** A kind is chosen, and a level if the kind is pain. */
+export function isSpotComplete(spot) {
+  return spot.kind !== null && (spot.kind !== "pain" || spot.level !== null);
+}
 export const ZOOM_MIN = 1;
 export const ZOOM_MAX = 2;
 export const ZOOM_STEP = 0.25;
@@ -70,7 +79,7 @@ export function createPainStore() {
     fn();
     renumber();
     state.hint = null;
-    if (state.highlightMissing && allSpotsHaveLevel()) state.highlightMissing = false;
+    if (state.highlightMissing && allSpotsComplete()) state.highlightMissing = false;
     emit();
   }
 
@@ -85,8 +94,8 @@ export function createPainStore() {
     return state.spots.find((spot) => spot.id === id) ?? null;
   }
 
-  function allSpotsHaveLevel() {
-    return state.spots.every((spot) => spot.level !== null);
+  function allSpotsComplete() {
+    return state.spots.every(isSpotComplete);
   }
 
   // ---------------------------------------------------------------- spots
@@ -98,6 +107,7 @@ export function createPainStore() {
       drawId,
       region: toPatientRegion(drawId, view),
       x, y,
+      kind: null,               // the patient chooses consciously: nothing preselected
       level: null,
       radiatesTo: [],
     };
@@ -109,9 +119,26 @@ export function createPainStore() {
     return spot;
   }
 
+  /**
+   * Pain or a symptom at this spot. Switching away from pain clears the
+   * level and the places it spreads to (Undo brings them back).
+   */
+  function setKind(id, kind) {
+    const spot = getSpot(id);
+    if (!spot || spot.kind === kind) return;
+    commit(() => {
+      spot.kind = kind;
+      if (kind !== "pain") {
+        spot.level = null;
+        spot.radiatesTo = [];
+        if (state.mode === "radiating") state.mode = "idle";
+      }
+    });
+  }
+
   function setLevel(id, level) {
     const spot = getSpot(id);
-    if (!spot || spot.level === level) return;
+    if (!spot || spot.kind !== "pain" || spot.level === level) return;
     commit(() => { spot.level = level; }, `level:${id}`);
   }
 
@@ -138,7 +165,7 @@ export function createPainStore() {
   /** Add a place the pain spreads to. Must be on the same view as the spot. */
   function addRadiation(id, { view, drawId, x, y }) {
     const spot = getSpot(id);
-    if (!spot) return false;
+    if (!spot || spot.kind !== "pain") return false;
     if (view !== spot.view) {
       ui(() => { state.hint = { key: "pain.radiateSameSide" }; });
       return false;
@@ -231,12 +258,12 @@ export function createPainStore() {
     ui(() => { state.hint = key ? { key, vars } : null; });
   }
 
-  /** "Review & send" pressed too early: flag the spots and select the first. */
-  function flagMissingLevels() {
+  /** "Review & send" pressed too early: flag the incomplete spots and select the first. */
+  function flagIncomplete() {
     ui(() => {
       state.highlightMissing = true;
-      state.hint = { key: "pain.needsLevel" };
-      const first = state.spots.find((spot) => spot.level === null);
+      state.hint = { key: state.spots.some((spot) => spot.kind === null) ? "pain.needsKind" : "pain.needsLevel" };
+      const first = state.spots.find((spot) => !isSpotComplete(spot));
       if (first) state.selectedSpotId = first.id;
       state.mode = "idle";
     });
@@ -247,15 +274,19 @@ export function createPainStore() {
     return getSpot(state.selectedSpotId);
   }
 
+  function painSpots() {
+    return state.spots.filter((spot) => spot.kind === "pain");
+  }
+
+  /** Highest level of the pain spots (null if there is none). */
   function maxLevel() {
-    const levels = state.spots.map((spot) => spot.level).filter((level) => level !== null);
+    const levels = painSpots().map((spot) => spot.level).filter((level) => level !== null);
     return levels.length ? Math.max(...levels) : null;
   }
 
-  /** Spots that all have a level, or no spots and at least one symptom. */
+  /** Something to send, and every spot complete (a kind; a level for pain). */
   function canReview() {
-    if (state.spots.length) return allSpotsHaveLevel();
-    return state.symptoms.length > 0;
+    return !isEmpty() && allSpotsComplete();
   }
 
   function isEmpty() {
@@ -265,10 +296,10 @@ export function createPainStore() {
   return {
     state,
     subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); },
-    getSpot, selectedSpot, maxLevel, canReview, isEmpty,
-    addSpot, setLevel, moveSpot, removeSpot,
+    getSpot, selectedSpot, painSpots, maxLevel, canReview, isEmpty,
+    addSpot, setKind, setLevel, moveSpot, removeSpot,
     addRadiation, removeRadiation, toggleSymptom, undo, reset,
     select, startRadiating, cancelMode, openCloseup, closeCloseup, setZoom, setHint,
-    flagMissingLevels,
+    flagIncomplete,
   };
 }

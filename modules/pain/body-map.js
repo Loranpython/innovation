@@ -12,6 +12,11 @@
     anatomy overlay  ->  front/back details (body-details.js)  ->
     radiation arrows (dashed, level colour)  ->  numbered spot markers
 
+  Markers:
+    pain spot     circle in the level colour with the number ("?" without level)
+    symptom spot  the small symptom icon with a dark number badge
+    no kind yet   grey circle with "?"
+
   Markers and arrow heads keep the SAME SIZE ON SCREEN in every
   view: they are drawn in screen pixels and scaled by fitMarkers() after
   the SVG is on the page (and again when the panel resizes).
@@ -22,13 +27,16 @@
 import { VIEWBOX, REGIONS, findRegion, toPatientRegion, regionName } from "./body-regions.js";
 import { anatomyMarkup } from "./body-anatomy.js";
 import { detailsMarkup } from "./body-details.js";
+import { iconSvg } from "./symptom-icons.js";
+import { kindLabel } from "./symptoms.js";
+import { isSpotComplete } from "./pain-state.js";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
-// Marker sizes in screen pixels.
+// Marker sizes in screen pixels (icon = symptom marker, badge = its number).
 const SIZES = {
-  whole: { r: 11, font: 12 },
-  closeup: { r: 16, font: 16 },
+  whole: { r: 11, font: 12, icon: 28, badge: 7, badgeFont: 10 },
+  closeup: { r: 16, font: 16, icon: 40, badge: 9, badgeFont: 12 },
 };
 
 // Below this many screen px per drawing unit the fine details (toes, hair
@@ -53,9 +61,16 @@ export function levelColours(level) {
   };
 }
 
-/** Small stand-alone marker SVG (for chips, editor header, review list). */
+const isSymptomSpot = (spot) => spot.kind && spot.kind !== "pain";
+
+/**
+ * Small stand-alone marker SVG (for chips, editor header, review list):
+ * the number in the level colour (pain), on white (symptom) or grey (no kind).
+ */
 export function markerSvg(spot, size = 28) {
-  const { fill, text } = levelColours(spot.level);
+  const { fill, text } = isSymptomSpot(spot)
+    ? { fill: "var(--color-surface)", text: "var(--color-text)" }
+    : levelColours(spot.level);
   return `<svg class="pain-marker-mini" viewBox="0 0 28 28" width="${size}" height="${size}" aria-hidden="true">` +
     `<circle cx="14" cy="14" r="12.5" style="fill:${fill}" class="pain-spot-dot"/>` +
     `<text x="14" y="14" dy="0.36em" text-anchor="middle" style="fill:${text}" class="pain-spot-number">${spot.number}</text>` +
@@ -71,11 +86,17 @@ export function closeupViewBox(box, zoom) {
   return [x + (w - w / zoom) / 2, y + (h - h / zoom) / 2, w / zoom, h / zoom];
 }
 
-/** Accessible description of a spot, e.g. "Spot 2: Right hand (Front), pain 3 of 10". */
+/**
+ * Accessible description of a spot, e.g. "Spot 2: Right hand (Front), pain 3 of 10"
+ * or "Spot 3: Right foot (Front), Cold".
+ */
 export function spotDescription(spot, t) {
   const view = t(spot.view === "front" ? "pain.viewFront" : "pain.viewBack");
-  const level = spot.level === null ? t("pain.levelMissing") : t("pain.levelOutOf", { n: spot.level });
-  return t("pain.spotAria", { n: spot.number, region: `${regionName(spot.region, t)} (${view}), ${level}` });
+  let what;
+  if (!spot.kind) what = t("pain.kindMissing");
+  else if (spot.kind !== "pain") what = kindLabel(spot.kind, t);
+  else what = spot.level === null ? t("pain.levelMissing") : t("pain.levelOutOf", { n: spot.level });
+  return t("pain.spotAria", { n: spot.number, region: `${regionName(spot.region, t)} (${view}), ${what}` });
 }
 
 /**
@@ -113,18 +134,31 @@ export function createBodyMap({ view, spots, selectedSpotId = null, highlightMis
     })).join("");
 
   const markers = viewSpots.map((spot) => {
-    const { fill, text } = levelColours(spot.level);
     const classes = ["pain-spot"];
     if (spot.id === selectedSpotId) classes.push("is-selected");
-    if (highlightMissing && spot.level === null) classes.push("is-missing");
-    const ring = size.r + 6;
+    if (highlightMissing && !isSpotComplete(spot)) classes.push("is-missing");
+    const symptom = isSymptomSpot(spot);
+    const ring = symptom ? size.icon / 2 + 5 : size.r + 6;
     const a11y = interactive
       ? `role="button" tabindex="0" aria-label="${escapeAttr(spotDescription(spot, t))}" data-focus-key="spot:${spot.id}"`
       : `aria-hidden="true"`;
+    let body;
+    if (symptom) {
+      // The icon is the marker; the number sits in a small badge, bottom right.
+      const half = size.icon / 2;
+      const at = half - size.badge * 0.6;
+      body = `<circle class="pain-spot-hit" r="${half}"/>` +
+        iconSvg(spot.kind, { className: "pain-spot-icon", x: -half, y: -half, size: size.icon }) +
+        `<circle class="pain-spot-badge" cx="${at}" cy="${at}" r="${size.badge}"/>` +
+        `<text class="pain-spot-number pain-spot-badge-number" x="${at}" y="${at}" dy="0.36em" text-anchor="middle" font-size="${size.badgeFont}">${spot.number}</text>`;
+    } else {
+      const { fill, text } = levelColours(spot.level);
+      body = `<circle class="pain-spot-dot" r="${size.r}" style="fill:${fill}"/>` +
+        `<text class="pain-spot-number" dy="0.36em" text-anchor="middle" font-size="${size.font}" style="fill:${text}">${isSpotComplete(spot) ? spot.number : "?"}</text>`;
+    }
     return `<g class="${classes.join(" ")} pain-fixed" data-spot-id="${spot.id}" data-x="${spot.x}" data-y="${spot.y}" ${a11y}>` +
       `<rect class="pain-spot-ring" x="${-ring}" y="${-ring}" width="${ring * 2}" height="${ring * 2}"/>` +
-      `<circle class="pain-spot-dot" r="${size.r}" style="fill:${fill}"/>` +
-      `<text class="pain-spot-number" dy="0.36em" text-anchor="middle" font-size="${size.font}" style="fill:${text}">${spot.level === null ? "?" : spot.number}</text>` +
+      body +
       `</g>`;
   }).join("");
 

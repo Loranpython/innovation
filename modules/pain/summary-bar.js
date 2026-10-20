@@ -54,7 +54,7 @@ export function createSummaryBar({ t, store, onReview, onStartOver }) {
     "data-focus-key": "bar:review",
     onClick: () => {
       if (store.canReview()) onReview();
-      else if (store.state.spots.length) store.flagMissingLevels();
+      else if (store.state.spots.length) store.flagIncomplete();
       else store.setHint("pain.chooseFirst");
     },
   }, [t("pain.reviewSend")]);
