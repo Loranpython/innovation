@@ -151,17 +151,34 @@ export function coldIcon(options) {
 }
 
 // ---------------------------------------------------------------- hot
-/* Orange-red face, tired lids, open panting mouth, sweat drop, thermometer top left. */
+/*
+  Orange-red face that looks unwell from the heat: worried brows, tired
+  droopy lids looking down, an open downturned (panting) mouth, flushed
+  cheeks, two sweat drops, and a thermometer (high) top left.
+*/
+function sweatDrop(x, top, scale = 1) {
+  const d = `M${x} ${top}c${-3.4 * scale} ${4.6 * scale} ${-5 * scale} ${7.2 * scale} ${-5 * scale} ${9.4 * scale}` +
+    `a${5 * scale} ${5 * scale} 0 0 0 ${10 * scale} 0c0 ${-2.2 * scale} ${-1.6 * scale} ${-4.8 * scale} ${-5 * scale} ${-9.4 * scale}Z`;
+  return `<path d="${d}" fill="#5fb4f0" ${WHITE_EDGE} stroke-width="1.6"/>`;
+}
+
 const HOT_BODY =
   face("#FF8A4C", "#D2531F") +
-  eyes([0, 1.5], [0, 1.5]) +
-  `<path d="M17 33a6 6 0 0 1 12 0Z" fill="#F07436" stroke="${FEATURE}" stroke-width="2" stroke-linejoin="round"/>` +
-  `<path d="M35 33a6 6 0 0 1 12 0Z" fill="#F07436" stroke="${FEATURE}" stroke-width="2" stroke-linejoin="round"/>` +
-  `<path d="M23 46h18a9 8.5 0 0 1-18 0Z" fill="#7a1f0f" stroke="${FEATURE}" stroke-width="2.2" stroke-linejoin="round"/>` +
-  `<path d="M27 51.5a5 3.2 0 0 1 10 0a5 2.6 0 0 1-10 0Z" fill="#ff9aa5"/>` +
-  // sweat drop on the forehead
-  `<path d="M46 15.5c-3.4 4.6-5 7.2-5 9.4a5 5 0 0 0 10 0c0-2.2-1.6-4.8-5-9.4Z" fill="#5fb4f0" ${WHITE_EDGE} stroke-width="1.6"/>` +
-  `<path d="M44 24.5a2.4 2.4 0 0 0 1.6 2.4" fill="none" stroke="#ffffff" stroke-width="1.4" stroke-linecap="round"/>` +
+  // flushed cheeks
+  `<ellipse cx="14.5" cy="44" rx="5" ry="3.4" fill="#E8482A" opacity="0.55"/>` +
+  `<ellipse cx="49.5" cy="44" rx="5" ry="3.4" fill="#E8482A" opacity="0.55"/>` +
+  // worried brows, raised toward the middle (as on Cold)
+  mouthPath("M17 25.5l7-2.5", 2.4) + mouthPath("M47 25.5l-7-2.5", 2.4) +
+  eyes([0, 2.4], [0, 2.4]) +
+  // tired lids, drooping toward the outer corners
+  `<path d="M17.2 34.5A6 6 0 0 1 28.9 32Z" fill="#F07436" stroke="${FEATURE}" stroke-width="2" stroke-linejoin="round"/>` +
+  `<path d="M35.1 32A6 6 0 0 1 46.8 34.5Z" fill="#F07436" stroke="${FEATURE}" stroke-width="2" stroke-linejoin="round"/>` +
+  // open, downturned mouth (panting), dark inside
+  `<path d="M23.5 53.5q8.5-12 17 0q-8.5-2-17 0Z" fill="#5a1a0a" stroke="${FEATURE}" stroke-width="2.2" stroke-linejoin="round"/>` +
+  // sweat: a drop at the right temple, a smaller one on the left of the forehead
+  sweatDrop(53, 10.5) +
+  `<path d="M51 19.5a2.4 2.4 0 0 0 1.6 2.4" fill="none" stroke="#ffffff" stroke-width="1.4" stroke-linecap="round"/>` +
+  sweatDrop(21, 12, 0.62) +
   // thermometer, red almost to the top
   `<rect x="5.5" y="1.5" width="9" height="22" rx="4.5" fill="#ffffff" stroke="#ffffff" stroke-width="3"/>` +
   `<circle cx="10" cy="24" r="6.5" fill="#ffffff" stroke="#ffffff" stroke-width="3"/>` +
