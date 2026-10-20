@@ -136,9 +136,14 @@ export function createPainStore() {
     });
   }
 
+  /** Choosing a level makes the spot a pain spot (from no kind or a symptom). */
   function setLevel(id, level) {
     const spot = getSpot(id);
-    if (!spot || spot.kind !== "pain" || spot.level === level) return;
+    if (!spot || (spot.kind === "pain" && spot.level === level)) return;
+    if (spot.kind !== "pain") {
+      commit(() => { spot.kind = "pain"; spot.level = level; });   // its own Undo step
+      return;
+    }
     commit(() => { spot.level = level; }, `level:${id}`);
   }
 

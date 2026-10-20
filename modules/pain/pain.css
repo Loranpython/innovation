@@ -628,6 +628,11 @@
   gap: 4px;
 }
 .pain-editor .pain-level { padding-top: 4px; padding-bottom: 4px; gap: 4px; }
+/* Compact last row (Spreads to / Delete) so the symptom tiles get the height */
+.pain-editor .pain-spreads,
+.pain-editor .pain-delete,
+.pain-editor .pain-delete-cancel,
+.pain-editor .pain-editor-delete .pain-danger { min-height: 56px; }
 .pain-editor-head {
   flex: 0 0 auto;
   display: flex;
@@ -643,35 +648,53 @@
   background: var(--color-text);
   color: var(--color-surface);
 }
-.pain-level.is-missing,
-.pain-kind.is-missing { outline: 3px dashed var(--pain-accent); outline-offset: -6px; }
+.pain-level.is-missing { outline: 3px dashed var(--pain-accent); outline-offset: -6px; }
 
-/* "What do you feel here?": Pain, Nauseous, Dizzy, Cold, Hot in one row */
+/* Dimmed while the spot is a symptom (still usable: a level switches back to pain) */
+.pain-level.is-dimmed { opacity: 0.45; }
+.pain-level.is-dimmed:hover,
+.pain-level.is-dimmed:focus-within { opacity: 0.75; }
+
+/* "Or something else here?": Nauseous, Dizzy, Cold, Hot under the level.
+   .pain-kind is a size container: the tiles take the rest of the panel,
+   one row of 4 when it is wide and low, 2 × 2 when there is height. */
 .pain-kind {
-  flex: 0 0 auto;
+  flex: 1 1 auto;
+  min-height: 110px;
+  container: kinds / size;
   display: flex;
   flex-direction: column;
   gap: 4px;
   padding: 6px 8px 8px;
 }
-.pain-kind-heading { font-size: 18px; font-weight: bold; }
+.pain-kind-heading { flex: none; font-size: 18px; font-weight: bold; line-height: 24px; }
 .pain-kind-grid {
-  container-type: inline-size;
+  --gap: 8px;
+  flex: 1 1 auto;
+  min-height: 0;
   display: grid;
-  grid-template-columns: repeat(5, auto);
-  justify-content: space-between;
-  gap: 6px;
+  grid-template-columns: repeat(4, auto);
+  justify-content: center;
+  align-content: center;
+  gap: var(--gap);
 }
 .pain-kind-grid > .symptom-tile {
-  --tile: max(var(--touch-min), min(calc((100cqw - 4 * 6px) / 5), 74px));
-  min-width: 0;
-  padding: 2px;
-  gap: 2px;
+  --tile: max(var(--touch-min), min(calc((100cqw - 3 * var(--gap)) / 4), calc(100cqh - 28px), 200px));
+  min-width: var(--touch-min);
+  min-height: var(--touch-min);
+  padding: 4px;
 }
-.pain-kind-grid .tile-icon { font-size: calc(var(--tile) * 0.34); }
-.pain-kind-grid .symptom-tile .tile-label { font-size: clamp(12px, calc(var(--tile) * 0.16), 17px); line-height: 1.1; overflow-wrap: anywhere; }
-.pain-kind-grid .symptom-tile[aria-pressed="true"] { outline-width: 4px; outline-offset: -8px; }
-.pain-kind-grid .symptom-check { width: 22px; height: 22px; font-size: 16px; }
+@container kinds (max-aspect-ratio: 2 / 1) {
+  .pain-kind-grid { grid-template-columns: repeat(2, auto); }
+  .pain-kind-grid > .symptom-tile {
+    --tile: max(var(--touch-min), min(calc((100cqw - var(--gap)) / 2), calc((100cqh - 28px - var(--gap)) / 2), 200px));
+  }
+}
+.pain-kind-grid .symptom-tile .tile-label {
+  font-size: clamp(12px, calc(var(--tile) * 0.15), 24px);
+  line-height: 1.1;
+  white-space: nowrap;                 /* full words, never broken ("Nauseous") */
+}
 .pain-editor-actions {
   flex: 0 0 auto;
   display: flex;
@@ -868,6 +891,8 @@
   /* In the sheet the editor keeps its natural height; the sheet scrolls */
   .pain.has-selection .pain-editor,
   .pain.has-selection .pain-editor > * { flex: none; }
+  /* ...so the symptom tiles size by width only: one row of 4 */
+  .pain.has-selection .pain-kind { container-type: inline-size; min-height: 0; }
   /* While choosing where the pain spreads to, the body must be free to tap */
   .pain.has-selection.is-radiating .pain-side { display: none; }
   .pain-faces { grid-template-columns: repeat(3, minmax(0, 1fr)); }

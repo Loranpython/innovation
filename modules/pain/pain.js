@@ -99,7 +99,7 @@ export function render(container, ctx) {
       store.openCloseup(view, drawId);
       return;
     }
-    speak(`${place}. ${t("pain.whatFeelHere")}`);
+    speak(`${place}. ${t("pain.spotLevelHeading")}`);
     store.addSpot({ view, drawId, x, y });
   }
 

@@ -7,11 +7,14 @@
       back with the same selection after Done.
 
     EDITOR   (a spot is selected)
-      "2 · Right hand (Front)" + Done, then "What do you feel here?" with
-      five tiles (Pain, Nauseous, Dizzy, Cold, Hot; one choice, nothing
-      preselected). Only for Pain: the level for this spot and one
-      "Spreads to →" button with its targets (× to remove). Always:
-      "Delete spot" (with a square inline confirm).
+      "2 · Right hand (Front)" + Done, then the pain level (faces + 0–10
+      slider, always visible), then "Or something else here?" with four
+      big tiles (Nauseous, Dizzy, Cold, Hot). The kind is implied:
+        choosing a level      -> pain
+        tapping a symptom     -> that symptom; the level picker is dimmed
+                                 (still usable: a level switches back to pain)
+      Only for pain: one "Spreads to →" button with its targets (× to
+      remove). Always: "Delete spot" (with a square inline confirm).
 
   createSidePanel() returns { el, update(state) }. update() rebuilds only
   when the panel switches between the hint and another spot; otherwise it
@@ -24,7 +27,7 @@ import { radiatingIcon } from "./pain-icons.js";
 import { regionName } from "./body-regions.js";
 import { markerSvg } from "./body-map.js";
 import { createLevelPicker } from "./level-picker.js";
-import { SYMPTOMS, KINDS, createKindTile, kindLabel } from "./symptoms.js";
+import { SYMPTOMS, createKindTile, kindLabel } from "./symptoms.js";
 
 export function createSidePanel({ t, store, viewLabel }) {
   const root = el("div", { class: "pain-side" });
@@ -67,8 +70,15 @@ export function createSidePanel({ t, store, viewLabel }) {
       onClick: () => store.select(null),
     }, [t("pain.done")]);
 
-    // What is it: pain or a symptom at this place. One choice.
-    const kindTiles = KINDS.map((kind) => createKindTile(kind, {
+    // Choosing a level makes this a pain spot (store.setLevel sets the kind).
+    const picker = createLevelPicker({
+      t,
+      heading: t("pain.spotLevelHeading"),
+      onChange: (level) => store.setLevel(spot.id, level),
+    });
+
+    // Or a symptom at this place instead of pain. One choice.
+    const kindTiles = SYMPTOMS.map((kind) => createKindTile(kind, {
       t,
       focusKey: `kind:${kind}`,
       onClick: () => {
@@ -77,15 +87,9 @@ export function createSidePanel({ t, store, viewLabel }) {
       },
     }));
     const kindBox = el("section", { class: "pain-box pain-kind" }, [
-      el("h3", { class: "pain-kind-heading", id: "pain-kind-heading" }, [t("pain.whatFeelHere")]),
+      el("h3", { class: "pain-kind-heading", id: "pain-kind-heading" }, [t("pain.somethingElse")]),
       el("div", { class: "pain-kind-grid", role: "group", "aria-labelledby": "pain-kind-heading" }, kindTiles),
     ]);
-
-    const picker = createLevelPicker({
-      t,
-      heading: t("pain.spotLevelHeading"),
-      onChange: (level) => store.setLevel(spot.id, level),
-    });
 
     const spreadButton = el("button", {
       type: "button",
@@ -139,8 +143,8 @@ export function createSidePanel({ t, store, viewLabel }) {
     const spreads = el("div", { class: "pain-editor-spreads" }, [spreadButton, targetList]);
     const editor = el("div", { class: "pain-editor", role: "region", "aria-label": t("pain.spot") }, [
       el("div", { class: "pain-box pain-editor-head" }, [marker, title, doneButton]),
-      kindBox,
       picker.el,
+      kindBox,
       el("div", { class: "pain-box pain-editor-actions" }, [spreads, actions]),
     ]);
     return { el: editor, title, marker, kindBox, kindTiles, picker, spreads, spreadButton, targetList };
@@ -152,12 +156,13 @@ export function createSidePanel({ t, store, viewLabel }) {
     for (const tile of parts.kindTiles) {
       tile.setAttribute("aria-pressed", String(tile.dataset.kind === spot.kind));
     }
-    parts.kindBox.classList.toggle("is-missing", state.highlightMissing && spot.kind === null);
     const isPain = spot.kind === "pain";
-    parts.picker.el.hidden = !isPain;
+    const isSymptom = Boolean(spot.kind) && !isPain;
+    parts.picker.el.classList.toggle("is-dimmed", isSymptom);
     parts.spreads.hidden = !isPain;
     parts.picker.update(spot.level);
-    parts.picker.el.classList.toggle("is-missing", state.highlightMissing && isPain && spot.level === null);
+    // Nothing chosen yet (no level, no symptom): flag the level picker.
+    parts.picker.el.classList.toggle("is-missing", state.highlightMissing && !isSymptom && spot.level === null);
     const radiating = state.mode === "radiating";
     parts.spreadButton.setAttribute("aria-pressed", String(radiating));
     parts.targetList.replaceChildren(...spot.radiatesTo.map((target, index) => {

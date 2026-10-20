@@ -80,11 +80,14 @@ Every change goes through a function such as `addSpot`, `setKind`, `setLevel`, `
 
 Tap a body part to open the close-up, then tap the exact place. A spot is created and its editor opens.
 
-**Spot editor** (right panel while a spot is selected): number + region and **Done**, then **What do you feel here?** with five square tiles: **Pain, Nauseous, Dizzy, Cold, Hot**. One choice, and **nothing is preselected**, so the patient chooses consciously.
+**Spot editor** (right panel while a spot is selected), top to bottom: number + region and **Done**; the **pain level** (faces + 0–10 slider), always visible right away; **Or something else here?** with four big tiles **Nauseous, Dizzy, Cold, Hot**; **Spreads to →** (pain only) and **Delete spot**. Nothing is preselected. The kind is implied:
 
-- **Pain:** the level picker (faces + 0–10 slider) and **Spreads to →** appear below. The level is required.
-- **Nauseous / Dizzy / Cold / Hot:** no level and no radiation. The spot is complete (cold feet, a hot forehead, nausea at the stomach).
-- Changing the kind is allowed. Switching away from pain clears the level and the radiation; **Undo** brings them back.
+- **Choosing a level** (a face or the slider) makes it a pain spot.
+- **Tapping a symptom tile** makes it that symptom (cold feet, a hot forehead, nausea at the stomach): no level, no radiation. The tile is inverted with a check mark, and the level picker is dimmed but still usable: choosing a level switches back to pain.
+- Switching from pain to a symptom clears the level and the radiation; **Undo** brings them back.
+- A spot with neither a level nor a symptom shows "?" and blocks Review & send.
+
+The symptom tiles take the space left in the panel: one row of 4 when it is wide and low, 2 × 2 when there is height (a CSS container query). At 1280×800 the whole editor fits without scrolling; on a phone it is a bottom sheet that scrolls inside itself.
 
 **Delete spot** (asks first) is always there. Tapping a marker or a chip selects that spot. In the close-up, markers can be **dragged** to move them; the region updates on drop, and a drop outside the body puts the marker back.
 
@@ -116,12 +119,12 @@ Never send a `drawId` to the nurse. Voice assistance (`js/voice.js`) also says t
 
 ## Voice assistance
 
-When voice assistance is on (header toggle or `?voice=1`), the screen says the region that was tapped, "Left thigh. What do you feel here?" after placing a spot, the kind when it is chosen ("Cold"), a general symptom's name when its tile is selected (nothing when unselected), "Pain level 4" for a face (for the slider only once the finger is lifted), the places the pain spreads to, and a short summary when the review opens.
+When voice assistance is on (header toggle or `?voice=1`), the screen says the region that was tapped, "Left thigh. Pain level for this spot" after placing a spot, a symptom when its tile is chosen ("Cold"), a general symptom's name when its tile is selected (nothing when unselected), "Pain level 4" for a face (for the slider only once the finger is lifted), the places the pain spreads to, and a short summary when the review opens.
 
 ## Summary bar and review
 
 - **Chips:** pain spots "1 Head · 7/10" ("?/10" in a warning style without a level); symptom spots number + icon + region ("2 (cold icon) Right foot"); a spot without a kind "Hand · ?"; general symptoms icon + label (tap to unselect).
-- **Review & send** works when there is at least one spot or general symptom, **every spot has a kind** and **every pain spot has a level**. Pressed too early, it flags the incomplete spots (dashed outline), shows "Choose what you feel at every spot" or "Every spot needs a pain level", and selects the first one.
+- **Review & send** works when there is at least one spot or general symptom and **every spot has a level or a symptom**. Pressed too early, it flags the incomplete spots (dashed outline), shows "Choose a pain level or a symptom at every spot", and selects the first one.
 - **Review:** the figure (front/back toggle; it opens on the view of the worst pain spot, else of the first spot), one line per spot ("1 Head (Front) — 7/10", "2 Right foot (Front) — (icon) Cold"), and **How you feel** with the general symptoms. **Worst pain** only shows when there is a pain spot. Without any spot only the symptoms are shown.
 
 ## What is sent to the nurse
@@ -182,9 +185,10 @@ Older notifications still render: pain spots without `kind` are pain, `sensation
 
 Run `python -m http.server 8000` and open `http://localhost:8000/#/pain`, with `nurse.html` in another browser.
 
-- Head, tap in the close-up, choose **Pain** and 7, press Done. Right foot → **Cold**. Tap **Nauseous** in the right panel. Send: the nurse sees one pain card with "2 · Right foot (front) Cold" and "Also feels: nauseous".
+- Head, tap in the close-up, choose 7, press Done. Right foot → **Cold**. Tap **Nauseous** in the right panel. Send: the nurse sees one pain card with "2 · Right foot (front) Cold" and "Also feels: nauseous".
 - Head → **Hot** only: the nurse sees a "Symptoms" card with "Head (front) Hot".
-- A spot without a kind, or a pain spot without a level, blocks Review & send, and the flags appear.
+- A spot with neither a level nor a symptom blocks Review & send, and the flags appear.
 - Lower back on the back view, Pain 6, **Spreads to →** the right thigh. Switch it to **Cold**: the level and arrow disappear; **Undo** brings them back.
 - On the **back** view, a spot on the left of the screen arrives as `left_…` (and is spoken as "Left …").
 - 1280×800 fits without scrolling; at 390×844 the four tiles are visible above the sticky bar.
+- `python tools/check_strings.py` (with the server running): every key exists in en, nl and no, and no raw key ("pain.kindPain") is visible on home, pain, spot editor, review or nurse in any language.
