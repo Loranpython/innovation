@@ -2,11 +2,13 @@
   review.js — square overlays on the pain screen (not a new route):
 
     createOverlay(root)  host for one dialog at a time (Escape closes it)
-    openReview(...)      "Check and send": worst pain + face, the figure with
-                         the numbered markers and arrows (front/back toggle),
-                         and one line per spot, then "How you feel" with the
-                         chosen general symptoms (only if any). Without spots
-                         only the symptoms are shown. Buttons: Change / Send.
+    openReview(...)      "Check and send": worst pain + face (only with a pain
+                         spot), the figure with the markers and arrows
+                         (front/back toggle; opens on the worst pain spot,
+                         else the first spot), one line per spot ("2 · Right
+                         foot (Front) — Cold"), then "How you feel" with the
+                         general symptoms (only if any). Without spots only
+                         the symptoms are shown. Buttons: Change / Send.
     openConfirm(...)     "Clear everything?" Cancel / Clear
 
   The review keeps the layout of the earlier version; only the content
@@ -20,6 +22,7 @@ import { createBodyMap, fitMarkers, markerSvg } from "./body-map.js";
 import { headIcon } from "./body-details.js";
 import { sortSymptoms } from "./symptoms.js";
 import { iconNode } from "./symptom-icons.js";
+import { kindLabel } from "./symptoms.js";
 
 export function createOverlay(root) {
   let overlay = null;
@@ -73,7 +76,7 @@ export function openConfirm({ overlay, t, onConfirm }) {
   ]);
 }
 
-/** One line in the review list: marker, region, level, spreads to. */
+/** One line in the review list: marker, region, level or symptom, spreads to. */
 function spotItem(spot, t, viewLabel) {
   const item = el("li", { class: "pain-review-spot" });
   const marker = el("span", { class: "pain-review-marker" });
@@ -89,7 +92,13 @@ function spotItem(spot, t, viewLabel) {
     el("div", { class: "pain-review-spot-body" }, [
       el("p", { class: "pain-review-spot-title" }, [
         el("strong", {}, [`${regionName(spot.region, t)} (${viewLabel(spot.view)})`]),
-        ` — ${spot.level}/10`,
+        " — ",
+        spot.kind === "pain"
+          ? `${spot.level}/10`
+          : el("span", { class: "pain-review-kind" }, [
+              el("span", { class: "icon", "aria-hidden": "true" }, [iconNode(spot.kind)]),
+              kindLabel(spot.kind, t),
+            ]),
       ]),
       spreads,
     ]),
@@ -109,11 +118,18 @@ function symptomsBlock(symptoms, t) {
   ];
 }
 
-export function openReview({ overlay, t, store, viewLabel, onSend, reviewView = "front" }) {
+/** The view to open on: the worst pain spot's, else the first spot's. */
+function startView(store) {
+  const pain = store.painSpots();
+  const worst = pain.length ? pain.reduce((a, b) => (b.level > a.level ? b : a)) : store.state.spots[0];
+  return worst?.view ?? "front";
+}
+
+export function openReview({ overlay, t, store, viewLabel, onSend, reviewView = null }) {
   const { spots } = store.state;
   const symptoms = sortSymptoms(store.state.symptoms);
   const worst = store.maxLevel();
-  const view = reviewView;
+  const view = reviewView ?? startView(store);
 
   if (!spots.length) {
     overlay.open("pain-dialog--review pain-dialog--symptoms", "pain-review-title", [
@@ -127,11 +143,14 @@ export function openReview({ overlay, t, store, viewLabel, onSend, reviewView = 
     return;
   }
 
-  const levelBlock = el("div", { class: "pain-review-level" }, [
-    el("span", { class: "pain-review-worst" }, [t("pain.worstPainShort")]),
-    el("span", { class: "pain-value" }, [el("strong", {}, [String(worst)]), el("span", {}, ["/10"])]),
-  ]);
-  levelBlock.insertAdjacentHTML("beforeend", faceSvg(worst));
+  let levelBlock = null;                 // "Worst pain" only with a pain spot
+  if (worst !== null) {
+    levelBlock = el("div", { class: "pain-review-level" }, [
+      el("span", { class: "pain-review-worst" }, [t("pain.worstPainShort")]),
+      el("span", { class: "pain-value" }, [el("strong", {}, [String(worst)]), el("span", {}, ["/10"])]),
+    ]);
+    levelBlock.insertAdjacentHTML("beforeend", faceSvg(worst));
+  }
 
   const viewButtons = ["front", "back"].map((name) => {
     const button = el("button", {

@@ -448,10 +448,11 @@
 }
 .pain-summary-actions {
   display: grid;
-  grid-template-columns: auto auto minmax(0, 1fr);   /* one row: the spot editor needs the height */
+  /* one row: the spot editor needs the height; long labels wrap ("Ongedaan maken") */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.5fr);
   gap: 8px;
 }
-.pain-summary-actions > button { padding: 0 12px; line-height: 1.1; }
+.pain-summary-actions > button { min-width: 0; padding: 0 10px; line-height: 1.1; white-space: normal; text-align: center; justify-content: center; }
 .pain-summary-actions .big-button { font-size: 21px; white-space: normal; }
 .pain-summary .big-button { min-height: 64px; }
 .pain-start-over { min-height: 64px; }
@@ -756,6 +757,7 @@
   align-items: center;
   gap: 6px;
 }
+.pain-undo .pain-tool-icon { flex: none; }
 .pain-review-button[aria-disabled="true"] {
   background: var(--color-disabled-bg);
   color: var(--color-disabled-text);
@@ -775,6 +777,8 @@
 .pain-review-spot-body { display: flex; flex-direction: column; gap: 6px; }
 .pain-review-spot-title { font-size: 18px; }
 .pain-review-spreads { font-weight: bold; }
+.pain-review-kind { display: inline-flex; align-items: center; gap: 6px; vertical-align: middle; font-weight: bold; }
+.pain-review-kind .icon { font-size: 24px; }
 .pain-review-symptoms {
   list-style: none;
   padding: 0;

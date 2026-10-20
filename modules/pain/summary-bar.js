@@ -1,20 +1,22 @@
 /*
   summary-bar.js — the bottom bar of the pain screen (same box as before).
 
-    [1 Head · 8/10] [2 Right hand · ?/10] [🤢 Nauseous] …   Undo   Start over   Review & send
+    [1 Head · 8/10] [2 (cold) Right foot] [3 Hand · ?] [(nauseous) Nauseous ×]
+    Undo   Start over   Review & send
 
   Landscape: it sits under the spot editor in the right column (pain.css),
   so the body figures get the full height. Narrow: sticky at the bottom.
 
   - Spot chips wrap (landscape) or scroll sideways (narrow); tapping one
     selects that spot.
-    A chip without a level shows "?/10" in a warning style.
+    Pain: "Head · 8/10" ("?/10" in a warning style without a level).
+    Symptom spot: number + icon + region. No kind yet: "Hand · ?".
   - One chip per selected general symptom (icon + label); tapping it
     unselects that symptom.
-  - "Review & send" works when every spot has a level (at least one spot),
-    or when there are no spots and at least one symptom. Before that it
-    LOOKS disabled (aria-disabled), and tapping it flags the spots that
-    still need a level and selects the first.
+  - "Review & send" works when there is something to send and every spot
+    is complete (a kind, and a level for pain). Before that it LOOKS
+    disabled (aria-disabled), and tapping it flags the incomplete spots
+    and selects the first.
 
   createSummaryBar() returns { el, update(state) }.
 */
@@ -23,6 +25,7 @@ import { el } from "../../js/ui.js";
 import { regionName } from "./body-regions.js";
 import { markerSvg, spotDescription } from "./body-map.js";
 import { iconNode } from "./symptom-icons.js";
+import { isSpotComplete } from "./pain-state.js";
 
 const UNDO_ICON = `<svg viewBox="0 0 24 24" aria-hidden="true" class="pain-tool-icon"><path d="M9 4L4 9l5 5 M4 9h11a5 5 0 0 1 0 10h-5"/></svg>`;
 
@@ -73,13 +76,21 @@ export function createSummaryBar({ t, store, onReview, onStartOver }) {
       "data-focus-key": `chip:${spot.id}`,
       onClick: () => store.select(spot.id),
     });
-    button.classList.toggle("is-missing", spot.level === null);
-    button.classList.toggle("is-flagged", state.highlightMissing && spot.level === null);
+    const complete = isSpotComplete(spot);
+    button.classList.toggle("is-missing", !complete);
+    button.classList.toggle("is-flagged", state.highlightMissing && !complete);
     button.innerHTML = markerSvg(spot, 28);
-    button.append(el("span", { class: "pain-chip-text" }, [
-      `${regionName(spot.region, t)} · `,
-      el("strong", {}, [`${spot.level ?? "?"}/10`]),
-    ]));
+    if (spot.kind && spot.kind !== "pain") {
+      button.append(
+        el("span", { class: "icon pain-chip-icon", "aria-hidden": "true" }, [iconNode(spot.kind)]),
+        el("span", { class: "pain-chip-text" }, [regionName(spot.region, t)]),
+      );
+    } else {
+      button.append(el("span", { class: "pain-chip-text" }, [
+        `${regionName(spot.region, t)} · `,
+        el("strong", {}, [spot.kind === "pain" ? `${spot.level ?? "?"}/10` : "?"]),
+      ]));
+    }
     return el("li", {}, [button]);
   }
 
