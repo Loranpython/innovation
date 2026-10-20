@@ -9,8 +9,8 @@
     General symptoms (nauseous, dizzy, cold, hot): 2 × 2 toggle tiles in the
                 right panel (no body map, no level), sent TOGETHER with
                 the spots in one notification:
-                  spots (+ symptoms) -> "pain" with details.symptoms
-                  only symptoms      -> "symptom" 
+                  a pain spot  -> "pain" with each spot's kind + details.symptoms
+                  no pain spot -> "symptom" with { symptoms, spots }
 
   (The eight sensation types were removed after clinical feedback: they
   were ambiguous for patients with communication difficulties.)
@@ -38,7 +38,7 @@ import { createSidePanel } from "./spot-editor.js";
 import { createSummaryBar } from "./summary-bar.js";
 import { createOverlay, openReview, openConfirm } from "./review.js";
 import { startMarkerMove, swallowClickAfterRelease } from "./drag.js";
-import { SYMPTOM_SEND_ICON, sortSymptoms } from "./symptoms.js";
+import { SYMPTOM_SEND_ICON, sortSymptoms, kindLabel } from "./symptoms.js";
 
 // Square toolbar icons (24 × 24, stroke-based like our pictograms).
 const TOOL_ICONS = {
@@ -275,9 +275,12 @@ export function render(container, ctx) {
     t,
     store,
     onReview: () => {
-      const feels = sortSymptoms(state.symptoms).map((id) => t(`symptom.${id}`)).join(", ");
-      speak(state.spots.length
-        ? `${t("pain.reviewTitle")}. ${t("pain.worstPainShort")}: ${store.maxLevel()}${feels ? `. ${feels}` : ""}`
+      const located = state.spots.filter((spot) => spot.kind !== "pain")
+        .map((spot) => `${kindLabel(spot.kind, t)} (${regionName(spot.region, t)})`);
+      const feels = [...located, ...sortSymptoms(state.symptoms).map((id) => t(`symptom.${id}`))].join(", ");
+      const worst = store.maxLevel();
+      speak(worst !== null
+        ? `${t("pain.reviewTitle")}. ${t("pain.worstPainShort")}: ${worst}${feels ? `. ${feels}` : ""}`
         : `${t("pain.reviewTitle")}: ${feels}`);
       openReview({ overlay, t, store, viewLabel, onSend: send });
     },
@@ -287,23 +290,27 @@ export function render(container, ctx) {
   // One tap = one notification, never two (pain + symptom).
   function send() {
     const symptoms = sortSymptoms(state.symptoms);
-    if (!state.spots.length) {
+    const located = (spot) => ({
+      number: spot.number,
+      view: spot.view,
+      region: spot.region,
+      regionLabel: englishRegionLabel(spot.region, spot.view),
+      kind: spot.kind,
+      x: spot.x,
+      y: spot.y,
+    });
+    if (!store.painSpots().length) {
       ctx.sendNotification({
         type: "symptom",
-        details: { symptoms },
+        details: { symptoms, spots: state.spots.map(located) },
         icon: SYMPTOM_SEND_ICON,
       });
       ctx.navigate("#/sent");
       return;
     }
     const spots = state.spots.map((spot) => ({
-      number: spot.number,
-      view: spot.view,
-      region: spot.region,
-      regionLabel: englishRegionLabel(spot.region, spot.view),
-      x: spot.x,
-      y: spot.y,
-      level: spot.level,
+      ...located(spot),
+      level: spot.kind === "pain" ? spot.level : null,
       radiatesTo: spot.radiatesTo.map(({ view, region, x, y }) => ({
         view, region, regionLabel: englishRegionLabel(region, view), x, y,
       })),

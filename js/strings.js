@@ -185,7 +185,7 @@ export const STRINGS = {
     "type.food": "Food",
     "type.pain": "Pain",
     "type.speech": "Speech",
-    "type.symptom": "General symptoms",
+    "type.symptom": "Symptoms",
 
     // Nurse dashboard (nurse.html, js/nurse.js)
     "nurse.stationTitle": "Nurse station",
@@ -394,7 +394,7 @@ export const STRINGS = {
     "type.food": "Eten",
     "type.pain": "Pijn",
     "type.speech": "Spraak",
-    "type.symptom": "Algemene klachten",
+    "type.symptom": "Klachten",
 
     // Nurse dashboard (nurse.html, js/nurse.js)
     "nurse.stationTitle": "Verpleegpost",
@@ -603,7 +603,7 @@ export const STRINGS = {
     "type.food": "Mat",
     "type.pain": "Smerte",
     "type.speech": "Tale",
-    "type.symptom": "Generelle symptomer",
+    "type.symptom": "Symptomer",
 
     // Nurse dashboard (nurse.html, js/nurse.js)
     "nurse.stationTitle": "Sykepleierstasjon",

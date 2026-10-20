@@ -26,6 +26,7 @@ import * as backend from "./backend.js";
 import { CHANNEL_NAME, TYPE_ICONS, readStoredNotifications, updateStoredNotification } from "./notifications.js";
 import { unlockAudio, playDing } from "./sound.js";
 import { el } from "./ui.js";
+import { iconNode } from "../modules/pain/symptom-icons.js";
 
 const POLL_MS = 10_000;
 const TICK_MS = 30_000;
@@ -403,8 +404,8 @@ function detailsElement(row) {
     case "pain":
       return painDetails(d);
     case "symptom":
-      // General symptoms: a plain list, never shown as pain, no urgency.
-      return line(symptomList(d) || "?");
+      // Symptoms (located and general): never shown as pain, no urgency.
+      return symptomDetails(d);
     default:
       return line(JSON.stringify(d), "nurse-detail nurse-detail-muted");
   }
@@ -412,14 +413,15 @@ function detailsElement(row) {
 
 /**
  * Pain, current format { maxLevel, spots: [{ number, view, region, regionLabel,
- * level, radiatesTo: [{ view, region, regionLabel }] }] }:
- *   Worst pain: 8/10
- *   1 · Head (front)        8/10
- *   2 · Lower back (back)   6/10
- *       → spreads to right thigh, right lower leg
- *   Also feels: nauseous, dizzy          (only if details.symptoms is not empty)
- * Spots are listed worst first; levels of 7 or more are highlighted.
- * Older requests without `symptoms` look exactly as before.
+ * kind, level, radiatesTo: [{ view, region, regionLabel }] }], symptoms }:
+ *   Worst pain: 7/10
+ *   1 · Head (front)        7/10
+ *       → spreads to right thigh
+ *   2 · Right foot (front)  (icon) Cold      (a symptom felt at that place)
+ *   Also feels: (icon) nauseous              (only if details.symptoms is not empty)
+ * Pain spots are listed worst first, symptom spots after them; levels of 7
+ * or more are highlighted. Spots without `kind` (older requests) are pain,
+ * and requests without `symptoms` look exactly as before.
  * Older requests may still have `sensations` per spot ("· Sharp / stabbing");
  * those are shown too, so saved notifications keep their meaning.
  *
@@ -430,28 +432,12 @@ function painDetails(d) {
   const box = el("div", { class: "nurse-detail" });
   if (Array.isArray(d.spots)) {
     const spots = d.spots.filter((s) => s && typeof s === "object");
-    const levelOf = (spot) => (Number.isFinite(Number(spot.level)) && spot.level !== null ? Number(spot.level) : -1);
+    const levelOf = (spot) => (isSymptomSpot(spot) || spot.level === null || !Number.isFinite(Number(spot.level)) ? -1 : Number(spot.level));
     const worst = d.maxLevel ?? Math.max(0, ...spots.map(levelOf));
     box.append(el("div", { class: "nurse-detail-main" }, [t("nurse.worstPainLine", { n: worst })]));
-    const list = el("ol", { class: "nurse-spots" });
-    [...spots].sort((a, b) => levelOf(b) - levelOf(a)).forEach((spot, index) => {
-      const sensations = (Array.isArray(spot.sensations) ? spot.sensations : []).map((s) => label(`pain.sensation.${s}`, s));
-      const spreads = (Array.isArray(spot.radiatesTo) ? spot.radiatesTo : [])
-        .map((r) => lower(label(`pain.region.${r?.region}`, r?.regionLabel ?? r?.region ?? "?")));
-      list.append(el("li", { class: cls("nurse-spot", Number(spot.level) >= HIGH_PAIN && "is-high") }, [
-        el("span", {}, [`${spot.number ?? index + 1} · ${spotName(spot)}`]),
-        el("span", {}, [
-          el("span", { class: "nurse-spot-level" }, [`${spot.level ?? "?"}/10`]),
-          sensations.length ? ` · ${sensations.join(", ")}` : "",
-        ]),
-        spreads.length
-          ? el("span", { class: "nurse-spot-spread" }, [`→ ${t("nurse.spreadsLine", { places: spreads.join(", ") })}`])
-          : null,
-      ]));
-    });
-    box.append(list);
-    const feels = symptomList(d);
-    if (feels) box.append(el("div", { class: "nurse-detail-symptoms" }, [t("nurse.alsoFeelsLine", { symptoms: lower(feels) })]));
+    box.append(spotList([...spots].sort((a, b) => levelOf(b) - levelOf(a))));
+    const feels = alsoFeels(d);
+    if (feels) box.append(feels);
     return box;
   }
 
@@ -463,6 +449,77 @@ function painDetails(d) {
   if (sensations.length) parts.push(t("nurse.feelsLine", { sensations: sensations.join(", ") }));
   box.append(el("div", { class: "nurse-detail-main" }, [parts.join(" · ")]));
   return box;
+}
+
+/** A spot with a symptom (nauseous, cold, …) instead of pain. */
+function isSymptomSpot(spot) {
+  return Boolean(spot?.kind) && spot.kind !== "pain";
+}
+
+/**
+ * One line per spot: "1 · Head (front)   7/10" (pain) or
+ * "2 · Right foot (front)   (icon) Cold" (symptom at that place).
+ */
+function spotList(spots) {
+  const list = el("ol", { class: "nurse-spots" });
+  spots.forEach((spot, index) => {
+    const symptom = isSymptomSpot(spot);
+    const sensations = (Array.isArray(spot.sensations) ? spot.sensations : []).map((s) => label(`pain.sensation.${s}`, s));
+    const spreads = (Array.isArray(spot.radiatesTo) ? spot.radiatesTo : [])
+      .map((r) => lower(label(`pain.region.${r?.region}`, r?.regionLabel ?? r?.region ?? "?")));
+    list.append(el("li", { class: cls("nurse-spot", !symptom && Number(spot.level) >= HIGH_PAIN && "is-high") }, [
+      el("span", {}, [`${spot.number ?? index + 1} · ${spotName(spot)}`]),
+      symptom
+        ? el("span", {}, [symptomWord(spot.kind)])
+        : el("span", {}, [
+            el("span", { class: "nurse-spot-level" }, [`${spot.level ?? "?"}/10`]),
+            sensations.length ? ` · ${sensations.join(", ")}` : "",
+          ]),
+      spreads.length
+        ? el("span", { class: "nurse-spot-spread" }, [`→ ${t("nurse.spreadsLine", { places: spreads.join(", ") })}`])
+        : null,
+    ]));
+  });
+  return list;
+}
+
+/**
+ * Symptoms without pain, { symptoms: [...], spots: [{ number, view, region,
+ * regionLabel, kind }] } (older requests only have `symptoms`):
+ *   1 · Forehead (front)   (icon) Hot
+ *   Also feels: (icon) nauseous
+ * or, without located spots, just "(icon) Nauseous, (icon) Dizzy".
+ */
+function symptomDetails(d) {
+  const spots = (Array.isArray(d.spots) ? d.spots : []).filter((s) => s && typeof s === "object");
+  if (!spots.length) {
+    return el("div", { class: "nurse-detail nurse-detail-main" }, symptomWords(d) ?? ["?"]);
+  }
+  const box = el("div", { class: "nurse-detail" }, [spotList(spots)]);
+  const feels = alsoFeels(d);
+  if (feels) box.append(feels);
+  return box;
+}
+
+/** "(icon) Cold": the drawn icon (if there is one) next to the word. */
+function symptomWord(id, { lowerCase = false } = {}) {
+  const word = label(`symptom.${id}`, id);
+  return el("span", { class: "nurse-symptom" }, [iconNode(id), lowerCase ? lower(word) : word]);
+}
+
+/** The general symptoms as icon + word, comma separated (null if none). */
+function symptomWords(d, options) {
+  const ids = Array.isArray(d.symptoms) ? d.symptoms : [];
+  if (!ids.length) return null;
+  return ids.flatMap((id, i) => (i ? [", ", symptomWord(id, options)] : [symptomWord(id, options)]));
+}
+
+/** "Also feels: (icon) nauseous, (icon) dizzy" (null if there are no general symptoms). */
+function alsoFeels(d) {
+  const words = symptomWords(d, { lowerCase: true });
+  if (!words) return null;
+  const [before, after = ""] = t("nurse.alsoFeelsLine", { symptoms: "\u0000" }).split("\u0000");
+  return el("div", { class: "nurse-detail-symptoms" }, [before, ...words, after]);
 }
 
 /** "Head (front)": translated region + view. Falls back to the English regionLabel. */
@@ -498,9 +555,16 @@ function foodDrinkText(type, d) {
   return t("nurse.detailLine", { type: typeLabel(type), value: label(`${type}.${d.item}`, d.item ?? "?") });
 }
 
-/** "Nauseous, Dizzy" from { symptoms: ["nauseous", "dizzy"] }. Unknown ids are shown as they are. */
+/**
+ * Plain text for the browser notification (no icons possible there):
+ * "Hot (forehead), Nauseous" from located spots + general symptoms.
+ * Unknown ids (and the old "anxious") are shown with their label or id.
+ */
 function symptomList(d) {
-  return (Array.isArray(d.symptoms) ? d.symptoms : []).map((s) => label(`symptom.${s}`, s)).join(", ");
+  const located = (Array.isArray(d.spots) ? d.spots : []).filter(isSymptomSpot)
+    .map((s) => `${label(`symptom.${s.kind}`, s.kind)} (${lower(label(`pain.region.${s.region}`, s.regionLabel ?? s.region ?? "?"))})`);
+  const general = (Array.isArray(d.symptoms) ? d.symptoms : []).map((s) => label(`symptom.${s}`, s));
+  return [...located, ...general].join(", ");
 }
 
 function isHighPain(row) {

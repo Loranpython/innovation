@@ -143,6 +143,9 @@ summary.nurse-section-title { cursor: pointer; min-height: 44px; display: flex; 
 .nurse-spot-spread { grid-column: 1 / -1; padding-left: 1.5em; color: var(--color-muted); }
 /* "Also feels: nauseous, dizzy" under the spots (general symptoms sent with pain) */
 .nurse-detail-symptoms { margin-top: 4px; padding: 3px 6px; font-weight: bold; }
+/* Symptom words with the drawn icon (modules/pain/symptom-icons.js) */
+.nurse-symptom { display: inline-flex; align-items: center; gap: 5px; vertical-align: middle; }
+.nurse-symptom .symptom-svg { display: block; width: 1.5em; height: 1.5em; flex: none; }
 @media (max-width: 520px) {
   .nurse-spot { grid-template-columns: 1fr; }
 }
