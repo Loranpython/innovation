@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Symptom icons</title>
+<!--
+  icons-preview.html — all symptom icons (modules/pain/symptom-icons.js) at
+  40, 64 and 128 px, on white and on the black of a selected tile.
+  Open with the local server: http://localhost:8000/icons-preview.html
+-->
+<style>
+  body { margin: 0; padding: 24px; font-family: Arial, Helvetica, sans-serif; background: #f4f2ec; color: #1b1b1b; }
+  h1 { font-size: 24px; margin: 0 0 16px; }
+  table { border-collapse: collapse; background: #ffffff; border: 2px solid #1b1b1b; }
+  th, td { border: 2px solid #1b1b1b; padding: 10px 14px; text-align: center; vertical-align: middle; }
+  th { font-size: 16px; }
+  td.dark { background: #1b1b1b; }
+  .symptom-svg { display: block; margin: auto; }
+</style>
+</head>
+<body>
+<h1>Symptom icons</h1>
+<table>
+  <thead><tr><th>Icon</th><th>40 px</th><th>64 px</th><th>128 px</th><th>64 px selected</th></tr></thead>
+  <tbody id="rows"></tbody>
+</table>
+<script type="module">
+  import { iconSvg } from "./modules/pain/symptom-icons.js";
+  const rows = document.getElementById("rows");
+  for (const [kind, label] of [["pain", "Pain"], ["nauseous", "Nauseous"], ["dizzy", "Dizzy"], ["cold", "Cold"], ["hot", "Hot"]]) {
+    const cells = [40, 64, 128].map((size) => `<td>${iconSvg(kind).replace("<svg ", `<svg width="${size}" height="${size}" `)}</td>`);
+    cells.push(`<td class="dark">${iconSvg(kind).replace("<svg ", `<svg width="64" height="64" `)}</td>`);
+    rows.insertAdjacentHTML("beforeend", `<tr><th>${label}</th>${cells.join("")}</tr>`);
+  }
+</script>
+</body>
+</html>
