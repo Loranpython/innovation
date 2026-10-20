@@ -1,2 +1,3 @@
 _reference/
 *.zip
+__pycache__/
