@@ -22,7 +22,7 @@
 import { el } from "../../js/ui.js";
 import { regionName } from "./body-regions.js";
 import { markerSvg, spotDescription } from "./body-map.js";
-import { symptomIconContent } from "../symptoms/symptoms.js";
+import { iconNode } from "./symptom-icons.js";
 
 const UNDO_ICON = `<svg viewBox="0 0 24 24" aria-hidden="true" class="pain-tool-icon"><path d="M9 4L4 9l5 5 M4 9h11a5 5 0 0 1 0 10h-5"/></svg>`;
 
@@ -92,7 +92,7 @@ export function createSummaryBar({ t, store, onReview, onStartOver }) {
       "data-focus-key": `chip:symptom:${id}`,
       onClick: () => store.toggleSymptom(id),
     }, [
-      el("span", { class: "icon pain-chip-icon", "aria-hidden": "true" }, [symptomIconContent(id)]),
+      el("span", { class: "icon pain-chip-icon", "aria-hidden": "true" }, [iconNode(id)]),
       el("span", { class: "pain-chip-text" }, [label]),
       el("span", { class: "pain-target-x", "aria-hidden": "true" }, ["×"]),
     ])]);

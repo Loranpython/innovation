@@ -1,10 +1,10 @@
 /*
   spot-editor.js — the right-hand panel of the pain screen. It shows:
 
-    HINT     (no spot selected)
-      "Tap where it hurts", then "Or how do you feel?" with the three
-      general symptom tiles (nauseous, anxious, dizzy) as toggles. They
-      come back with the same selection after Done.
+    SYMPTOMS (no spot selected)
+      "Or how do you feel?" with the four general symptom tiles
+      (nauseous, dizzy, cold, hot) as toggles in a 2 × 2 grid. They come
+      back with the same selection after Done.
 
     EDITOR   (a spot is selected)
       "2 · Right hand (Front)" + Done, the pain level for this spot,
@@ -22,40 +22,34 @@ import { radiatingIcon } from "./pain-icons.js";
 import { regionName } from "./body-regions.js";
 import { markerSvg } from "./body-map.js";
 import { createLevelPicker } from "./level-picker.js";
-import { SYMPTOMS, createSymptomTile } from "../symptoms/symptoms.js";
+import { SYMPTOMS, createKindTile } from "./symptoms.js";
 
 export function createSidePanel({ t, store, viewLabel }) {
   const root = el("div", { class: "pain-side" });
   let shownKey = null;
   let parts = null;            // elements of the current hint / editor
 
-  // ---------------------------------------------------------------- hint
-  function buildHint() {
-    const tiles = SYMPTOMS.map((symptom) => createSymptomTile(symptom, {
+  // ---------------------------------------------------------------- general symptoms
+  function buildSymptoms() {
+    const tiles = SYMPTOMS.map((id) => createKindTile(id, {
       t,
-      focusKey: `symptom:${symptom.id}`,
+      focusKey: `symptom:${id}`,
       onClick: () => {
         // Voice: only when it is selected (unselecting says nothing).
-        if (!store.state.symptoms.includes(symptom.id)) speak(t(`symptom.${symptom.id}`));
-        store.toggleSymptom(symptom.id);
+        if (!store.state.symptoms.includes(id)) speak(t(`symptom.${id}`));
+        store.toggleSymptom(id);
       },
     }));
-    const hint = el("div", { class: "pain-side-hint-wrap" }, [
-      el("section", { class: "pain-box pain-side-hint" }, [
-        el("span", { class: "icon pain-side-hint-icon", "aria-hidden": "true" }, ["👆"]),
-        el("p", {}, [t("pain.bodyHint")]),
-      ]),
-      el("section", { class: "pain-box pain-symptoms" }, [
-        el("h2", { class: "pain-symptoms-heading", id: "pain-symptoms-heading" }, [t("pain.orHowFeel")]),
-        el("div", { class: "pain-symptom-grid", role: "group", "aria-labelledby": "pain-symptoms-heading" }, tiles),
-      ]),
+    const section = el("section", { class: "pain-box pain-symptoms" }, [
+      el("h2", { class: "pain-symptoms-heading", id: "pain-symptoms-heading" }, [t("pain.orHowFeel")]),
+      el("div", { class: "pain-symptom-grid", role: "group", "aria-labelledby": "pain-symptoms-heading" }, tiles),
     ]);
-    return { el: hint, tiles };
+    return { el: section, tiles };
   }
 
-  function updateHint(state) {
+  function updateSymptoms(state) {
     for (const tile of parts.tiles) {
-      tile.setAttribute("aria-pressed", String(state.symptoms.includes(tile.dataset.symptom)));
+      tile.setAttribute("aria-pressed", String(state.symptoms.includes(tile.dataset.kind)));
     }
   }
 
@@ -159,15 +153,15 @@ export function createSidePanel({ t, store, viewLabel }) {
   // ---------------------------------------------------------------- update
   function update(state) {
     const spot = store.selectedSpot();
-    const key = spot ? `spot:${spot.id}` : "hint";
+    const key = spot ? `spot:${spot.id}` : "symptoms";
     if (key !== shownKey) {
       shownKey = key;
-      parts = spot ? buildEditor(spot) : buildHint();
+      parts = spot ? buildEditor(spot) : buildSymptoms();
       root.replaceChildren(parts.el);
       root.classList.toggle("is-editing", Boolean(spot));
     }
     if (spot) updateEditor(state, spot);
-    else updateHint(state);
+    else updateSymptoms(state);
   }
 
   return { el: root, update };

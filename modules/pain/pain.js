@@ -6,11 +6,11 @@
 
     Tap a body part -> close-up -> tap the exact place -> spot + editor.
     Spreads to: the "Spreads to →" button in the editor, then tap places.
-    General symptoms (nauseous, anxious, dizzy): three toggle tiles in the
+    General symptoms (nauseous, dizzy, cold, hot): 2 × 2 toggle tiles in the
                 right panel (no body map, no level), sent TOGETHER with
                 the spots in one notification:
                   spots (+ symptoms) -> "pain" with details.symptoms
-                  only symptoms      -> "symptom" (as modules/symptoms)
+                  only symptoms      -> "symptom" 
 
   (The eight sensation types were removed after clinical feedback: they
   were ambiguous for patients with communication difficulties.)
@@ -18,7 +18,7 @@
   This file only wires things together:
     pain-state.js   state + changes + undo (one source of truth)
     body-map.js     the SVG figures, markers and arrows
-    spot-editor.js  right panel (hint + symptom tiles, or spot editor)
+    spot-editor.js  right panel (symptom tiles, or spot editor)
     summary-bar.js  spot + symptom chips, Undo, Start over, Review & send
     review.js       review + confirm overlays
     drag.js         moving markers in the close-up
@@ -38,7 +38,7 @@ import { createSidePanel } from "./spot-editor.js";
 import { createSummaryBar } from "./summary-bar.js";
 import { createOverlay, openReview, openConfirm } from "./review.js";
 import { startMarkerMove, swallowClickAfterRelease } from "./drag.js";
-import { GENERAL_ICON, loadSymptomStyles, sortSymptoms, symptomIcon } from "../symptoms/symptoms.js";
+import { SYMPTOM_SEND_ICON, sortSymptoms } from "./symptoms.js";
 
 // Square toolbar icons (24 × 24, stroke-based like our pictograms).
 const TOOL_ICONS = {
@@ -68,7 +68,7 @@ let teardown = null;
 
 export function render(container, ctx) {
   const { t } = ctx;
-  const stylesheets = [loadStyles(), loadSymptomStyles()];
+  const stylesheet = loadStyles();
   const store = createPainStore();
   const { state } = store;
   const viewLabel = (view) => t(view === "front" ? "pain.viewFront" : "pain.viewBack");
@@ -291,7 +291,7 @@ export function render(container, ctx) {
       ctx.sendNotification({
         type: "symptom",
         details: { symptoms },
-        icon: symptoms.length === 1 ? symptomIcon(symptoms[0]) : GENERAL_ICON,
+        icon: SYMPTOM_SEND_ICON,
       });
       ctx.navigate("#/sent");
       return;
@@ -358,17 +358,13 @@ export function render(container, ctx) {
   resizeObserver.observe(bodyPanel);
   resizeObserver.observe(summaryBar.el);
 
-  // Hide until pain.css + symptoms.css are loaded, so the screen does not flash unstyled.
-  const loading = stylesheets.filter((sheet) => !sheet.sheet);
-  if (loading.length) {
+  // Hide until pain.css is loaded, so the screen does not flash unstyled.
+  if (!stylesheet.sheet) {
     root.style.visibility = "hidden";
-    Promise.all(loading.map((sheet) => new Promise((resolve) => {
-      sheet.addEventListener("load", resolve, { once: true });
-      sheet.addEventListener("error", resolve, { once: true });
-    }))).then(() => {
+    stylesheet.addEventListener("load", () => {
       root.style.visibility = "";
       fitMarkers(bodyPanel);
-    });
+    }, { once: true });
   }
 
   container.append(root);

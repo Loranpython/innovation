@@ -49,7 +49,6 @@ export const STRINGS = {
     "pain.viewBack": "Back",
     "pain.viewFrontLabel": "FRONT",
     "pain.viewBackLabel": "BACK",
-    "pain.bodyHint": "Tap where it hurts",
     "pain.closeupHint": "Tap the exact spot",
     "pain.wholeBody": "Back to whole body",
     "pain.undo": "Undo last point",
@@ -134,10 +133,12 @@ export const STRINGS = {
     "pain.region.right_foot": "Right foot",
     "pain.region.left_foot": "Left foot",
 
-    // General symptoms (modules/symptoms), no body map, no level; chosen on the pain screen
+    // Symptoms (modules/pain/symptoms.js): general tiles and the kind of a body spot
     "symptom.nauseous": "Nauseous",
-    "symptom.anxious": "Anxious",
+    "symptom.anxious": "Anxious",   // old notifications only (no longer in the patient UI)
     "symptom.dizzy": "Dizzy",
+    "symptom.cold": "Cold",
+    "symptom.hot": "Hot",
 
     "speech.title": "Speak",
     "speech.todo": "TODO: speech & translation module (in development)",
@@ -254,7 +255,6 @@ export const STRINGS = {
     "pain.viewBack": "Achterkant",
     "pain.viewFrontLabel": "VOORKANT",
     "pain.viewBackLabel": "ACHTERKANT",
-    "pain.bodyHint": "Tik waar het pijn doet",
     "pain.closeupHint": "Tik op de juiste plek",
     "pain.wholeBody": "Terug naar het hele lichaam",
     "pain.undo": "Laatste punt ongedaan maken",
@@ -339,10 +339,12 @@ export const STRINGS = {
     "pain.region.right_foot": "Rechtervoet",
     "pain.region.left_foot": "Linkervoet",
 
-    // General symptoms (modules/symptoms), no body map, no level; chosen on the pain screen
+    // Symptoms (modules/pain/symptoms.js): general tiles and the kind of a body spot
     "symptom.nauseous": "Misselijk",
-    "symptom.anxious": "Angstig",
+    "symptom.anxious": "Angstig",   // old notifications only (no longer in the patient UI)
     "symptom.dizzy": "Duizelig",
+    "symptom.cold": "Koud",
+    "symptom.hot": "Warm",
 
     "speech.title": "Spreken",
     "speech.todo": "TODO: spraak- en vertaalmodule (in ontwikkeling)",
@@ -458,7 +460,6 @@ export const STRINGS = {
     "pain.viewBack": "Bakside",
     "pain.viewFrontLabel": "FORSIDE",
     "pain.viewBackLabel": "BAKSIDE",
-    "pain.bodyHint": "Trykk der det gjør vondt",
     "pain.closeupHint": "Trykk på det nøyaktige stedet",
     "pain.wholeBody": "Tilbake til hele kroppen",
     "pain.undo": "Angre siste punkt",
@@ -543,10 +544,12 @@ export const STRINGS = {
     "pain.region.right_foot": "Høyre fot",
     "pain.region.left_foot": "Venstre fot",
 
-    // General symptoms (modules/symptoms), no body map, no level; chosen on the pain screen
+    // Symptoms (modules/pain/symptoms.js): general tiles and the kind of a body spot
     "symptom.nauseous": "Kvalm",
-    "symptom.anxious": "Engstelig",
+    "symptom.anxious": "Engstelig",   // old notifications only (no longer in the patient UI)
     "symptom.dizzy": "Svimmel",
+    "symptom.cold": "Kald",
+    "symptom.hot": "Varm",
 
     "speech.title": "Snakk",
     "speech.todo": "TODO: tale- og oversettelsesmodul (under utvikling)",

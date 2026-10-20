@@ -15,7 +15,7 @@
     }
 
   General symptoms (no place, no level) chosen on the same screen:
-    symptoms: ["nauseous", "dizzy"]     // ids from modules/symptoms/symptoms.js
+    symptoms: ["nauseous", "dizzy"]     // ids from symptoms.js
 
   Every change goes through a function below. Changes to the answers push
   a snapshot to `history` (for Undo); then all listeners are called once,
