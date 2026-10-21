@@ -1,0 +1,25 @@
+{
+  "_note": "Pre-translated pairs, sent without machine translation. status 'verify' = must be checked by a clinician and a professional translator before real use. Edit freely; keep both languages in sync.",
+  "patient": [
+    {"id": "yes", "icon": "check", "no": "Ja", "en": "Yes", "status": "verify"},
+    {"id": "no", "icon": "cross", "no": "Nei", "en": "No", "status": "verify"},
+    {"id": "not_understand", "icon": "question", "no": "Jeg forstår ikke", "en": "I don't understand", "status": "verify"},
+    {"id": "repeat", "icon": "repeat", "no": "Kan du gjenta?", "en": "Can you say that again?", "status": "verify"},
+    {"id": "slower", "icon": "slow", "no": "Kan du snakke saktere?", "en": "Can you speak more slowly?", "status": "verify"},
+    {"id": "help", "icon": "hand", "no": "Jeg trenger hjelp", "en": "I need help", "status": "verify", "call_person": true}
+  ],
+  "worker": [
+    {"id": "pain_q", "no": "Har du vondt?", "en": "Are you in pain?", "status": "verify"},
+    {"id": "where", "no": "Hvor har du vondt? Pek gjerne.", "en": "Where does it hurt? You can point.", "status": "verify"},
+    {"id": "scale", "no": "Hvor vondt er det, fra 0 til 10?", "en": "How bad is the pain, from 0 to 10?", "status": "verify"},
+    {"id": "breathe", "no": "Har du vanskelig for å puste?", "en": "Do you have trouble breathing?", "status": "verify"},
+    {"id": "nausea", "no": "Er du kvalm?", "en": "Do you feel sick to your stomach?", "status": "verify"},
+    {"id": "allergy", "no": "Er du allergisk mot noen medisiner?", "en": "Are you allergic to any medicines?", "status": "verify"},
+    {"id": "yesno", "no": "Svar gjerne ja eller nei.", "en": "Please answer yes or no.", "status": "verify"},
+    {"id": "back5", "no": "Jeg kommer tilbake om fem minutter.", "en": "I will be back in five minutes.", "status": "verify"},
+    {"id": "doctor", "no": "Legen kommer snart.", "en": "The doctor is coming soon.", "status": "verify"},
+    {"id": "interpreter", "no": "Jeg skal skaffe en tolk.", "en": "I will get an interpreter.", "status": "verify"},
+    {"id": "anything", "no": "Er det noe mer du trenger?", "en": "Is there anything else you need?", "status": "verify"},
+    {"id": "rest", "no": "Takk. Nå kan du hvile.", "en": "Thank you. You can rest now.", "status": "verify"}
+  ]
+}

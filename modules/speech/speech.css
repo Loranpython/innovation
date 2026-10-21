@@ -1,26 +1,20 @@
 /*
   speech.css — styles for the speech screen only (loaded by speech.js).
-  Currently only the placeholder box.
+  The screen itself is the bedside translation service shown in an iframe.
 */
 
-.speech-placeholder {
-  /* Square box that fits both the width and the height of the screen */
-  width: min(100%, 640px, calc(var(--vh) - var(--header-h) - var(--toolbar-h) - 4 * var(--pad)));
-  aspect-ratio: 1;
+.speech-body {
+  padding: 0;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 24px;
-  padding: 24px;
-  border: 3px dashed var(--color-border);
-  background: var(--color-surface);
-  text-align: center;
+  flex: 1;
+  min-height: 0;
 }
 
-.speech-placeholder-icon { font-size: clamp(64px, 20vmin, 160px); }
-
-.speech-placeholder-text {
-  font-size: 22px;
-  font-weight: bold;
+.speech-frame {
+  border: 0;
+  width: 100%;
+  flex: 1;
+  min-height: 70vh;
+  background: transparent;
 }

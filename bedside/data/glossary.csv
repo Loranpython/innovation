@@ -1,0 +1,104 @@
+no,en,category,status,note
+hode,head,body,ok,
+mage,stomach / abdomen,body,uncertain,"mage can mean stomach or abdomen; check context"
+bryst,chest,body,ok,
+rygg,back,body,ok,
+nakke,neck,body,ok,
+hals,throat / neck,body,uncertain,"hals can mean throat or neck"
+arm,arm,body,ok,
+hånd,hand,body,ok,
+finger,finger,body,ok,
+fot,foot,body,ok,
+bein,leg,body,uncertain,"bein can mean leg or bone; check context"
+kne,knee,body,ok,
+skulder,shoulder,body,ok,
+øye,eye,body,ok,
+munn,mouth,body,ok,
+hjerte,heart,body,ok,
+tarm,bowel / intestine,body,uncertain,"English term depends on context"
+kvalm,nauseous,symptom,uncertain,"common term for nausea; confirm wording with clinician"
+kvalme,nausea,symptom,ok,
+oppkast,vomit,symptom,ok,
+å kaste opp,to vomit,symptom,ok,
+svimmel,dizzy,symptom,uncertain,"can mean dizzy or light-headed; vertigo differs"
+besvimelse,fainting,symptom,ok,
+feber,fever,symptom,ok,
+hoste,cough,symptom,ok,
+tung i pusten,short of breath,symptom,uncertain,"literal sense is heavy in the breath; clinician to confirm"
+pust,breath,symptom,uncertain,"can mean breath or breathing depending on context"
+pustevansker,difficulty breathing,symptom,uncertain,"may map to dyspnoea; clinician to confirm"
+slapp,weak / tired,symptom,uncertain,"can mean weak, limp or tired; context-dependent"
+forvirret,confused,symptom,ok,
+blødning,bleeding,symptom,ok,
+vondt,sore / pain,pain,uncertain,"often means sore or painful; English pain may be stronger; ask patient"
+smerte,pain,pain,ok,
+verkende,aching,pain,ok,
+stikkende,stabbing / prickling,pain,uncertain,"can mean stabbing or pricking; context"
+brennende,burning,pain,ok,
+dunkende,throbbing,pain,ok,
+skarp,sharp,pain,ok,
+krampe,cramp / spasm,pain,uncertain,"may mean cramp or spasm"
+smertestillende,painkiller / analgesic,medicine,uncertain,"generic term; do not map to a specific drug"
+smerteskala,pain scale,pain,ok,
+"sju av ti",seven out of ten,pain,ok,
+tablett,tablet,medicine,ok,
+dose,dose,medicine,ok,
+mg,mg,medicine,ok,milligram
+ml,ml,medicine,ok,millilitre
+dråpe,drop,medicine,uncertain,"route and form unclear; confirm with clinician"
+drypp,IV drip / infusion,medicine,uncertain,"everyday word for an intravenous drip; check what is being given"
+intravenøst,intravenous,medicine,ok,
+kanyle,needle / cannula,medicine,uncertain,"often means needle; venekanyle = IV cannula"
+sprøyte,injection,medicine,uncertain,"can mean injection or syringe; confirm"
+dosett,pill organiser / blister pack,medicine,uncertain,"dose dispensing aid; English term varies"
+blodfortynnende,blood thinner,medicine,ok,"anticoagulant; keep generic"
+antibiotika,antibiotics,medicine,ok,
+insulin,insulin,medicine,ok,
+paracetamol,paracetamol,medicine,ok,
+allergi,allergy,medicine,ok,
+allergisk,allergic,medicine,ok,
+blodtrykk,blood pressure,medicine,uncertain,"may refer to the measurement or the value; check context"
+legge seg,lie down,care,ok,
+snu deg,turn over / turn around,care,uncertain,"ambiguous; turn in bed or turn around"
+reise seg,stand up,care,ok,
+ringe på,press the call button,care,ok,
+nødknapp,emergency button,care,uncertain,"not the same as the bedside call button (pasientsignal / ringeknapp)"
+ringeknapp,call button,care,uncertain,"bedside call button; local word may differ (snor, pasientsignal)"
+sykepleier,nurse,care,ok,
+lege,doctor,care,ok,
+pleier,carer / nursing assistant,care,uncertain,"can mean carer, nurse or care worker"
+tolk,interpreter,care,ok,
+pasient,patient,care,ok,
+pårørende,relatives / next of kin,care,uncertain,"English term depends on context"
+samtykke,consent,care,ok,
+blodprøve,blood sample,care,ok,
+ta blodprøve,take a blood sample,care,ok,
+drikke,drink,care,ok,
+toalett,toilet,care,ok,
+fastende,nil by mouth (fasting),care,uncertain,"no food or drink before a procedure; clinician to confirm exact instruction"
+i morgen tidlig,early tomorrow morning,time,ok,
+i morgen,tomorrow,time,ok,
+i morges,this morning,time,ok,
+i natt,last night / tonight,time,uncertain,"can mean last night or tonight; check context"
+i dag,today,time,ok,
+i går,yesterday,time,ok,
+hver sjette time,every six hours,time,ok,
+hver åttende time,every eight hours,time,ok,
+om en halvtime,in half an hour,time,ok,
+klokken 14:30,at 14:30,time,ok,
+to ganger daglig,twice daily,time,ok,
+hver dag,every day,time,ok,
+Hvor gjør det vondt?,Where does it hurt?,question,ok,
+Hvordan har du det?,How are you feeling?,question,ok,
+Når begynte det?,When did it start?,question,ok,
+Har du feber?,Do you have a fever?,question,ok,
+Hvor vondt er det på en skala fra 0 til 10?,Rate your pain from 0 to 10,question,ok,
+Er du allergisk mot noe?,Are you allergic to anything?,question,ok,
+Har du tatt blodfortynnende i morges?,Did you take your blood thinner this morning?,question,ok,
+Kan du svelge?,Can you swallow?,question,ok,
+Er du kvalm?,Do you feel nauseous?,question,uncertain,"depends on kvalm; confirm"
+Vil du ha smertestillende?,Do you want painkillers?,question,ok,
+Kan jeg få litt vann?,Can I have some water?,question,ok,
+legg,calf (lower leg),body,ok,"not the whole leg (bein = leg)"
+lår,thigh,body,ok,
+ankel,ankle,body,ok,
