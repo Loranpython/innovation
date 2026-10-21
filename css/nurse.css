@@ -177,3 +177,16 @@ summary.nurse-section-title { cursor: pointer; min-height: 44px; display: flex; 
 @media (prefers-reduced-motion: reduce) {
   .nurse-card.is-arriving { animation: none; outline: 4px solid var(--color-focus); outline-offset: -4px; }
 }
+
+/* Button that opens the nurse side of a speech conversation */
+.nurse-speech-open {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 12px 20px;
+  min-height: 48px;
+  border: 2px solid var(--color-border, #1b1b1b);
+  background: var(--color-surface, #fff);
+  font-weight: 700;
+  text-decoration: none;
+  color: inherit;
+}

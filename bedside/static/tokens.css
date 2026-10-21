@@ -1,0 +1,77 @@
+/* Bedside design tokens v2 (SPEC-v2.md §4) + shared base. Owned by lead — ask before editing. */
+:root{
+  /* surfaces + text (all text pairs ≥ 6:1) */
+  --bg:#F3F7FA;--bg-tint:#E6F3F1;--surface:#FFFFFF;--ink:#0F2233;--muted:#475869;--line:#D8E2EA;
+  /* roles */
+  --teal:#0A6670;--teal-soft:#E0F1F1;      /* patient, primary actions */
+  --blue:#2A5699;--blue-soft:#E7EEF9;      /* healthcare worker */
+  --warm:#FFE4C4;--warm-ink:#7A3E00;       /* call a person, gentle highlight */
+  /* states */
+  --listen:#9A4A0E;--ok:#1D7048;--ok-soft:#E3F3EA;--no:#A3303D;--no-soft:#FBE9EB;
+  --unsure-bg:#FFF4D4;--unsure-ink:#6B4A00;--unsure-line:#D9A621;
+  --focus:#1849C9;
+  /* legacy aliases (v1 names still used in places) */
+  --paper:var(--bg);--card:var(--surface);--ready:var(--teal);--yes:var(--ok);--person:var(--warm);--quiet:#E9EEF2;--think:#3D4A9E;
+  /* spacing */
+  --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:24px;--s6:32px;--s7:48px;--s8:64px;
+  /* shape + depth */
+  --r-card:28px;--r-bubble:24px;--r-tail:8px;--r-input:18px;--r-pill:999px;
+  --shadow-1:0 1px 2px rgba(15,34,51,.06),0 4px 12px rgba(15,34,51,.06);
+  --shadow-2:0 2px 4px rgba(15,34,51,.06),0 12px 32px rgba(15,34,51,.10);
+  /* type (local fonts only) */
+  --font:ui-rounded,"SF Pro Rounded",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  /* motion */
+  --ease:cubic-bezier(.22,.7,.2,1);--t-fast:200ms;--t-msg:280ms;
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;padding:0;max-width:100%;overflow-x:hidden}
+body{
+  background:radial-gradient(1200px 700px at 85% -10%,var(--bg-tint),transparent 60%),var(--bg);
+  background-attachment:fixed;color:var(--ink);font-family:var(--font);font-size:17px;line-height:1.4;
+  -webkit-font-smoothing:antialiased;transition:background-color .3s;
+}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:var(--surface);padding:var(--s3) var(--s5);border-radius:var(--r-pill);box-shadow:var(--shadow-1);
+  transition:transform var(--t-fast) var(--ease),box-shadow var(--t-fast) var(--ease),background-color var(--t-fast)}
+button:active{transform:scale(.97)}
+button:disabled{opacity:.55;cursor:default;box-shadow:none}
+input,textarea{border:2px solid var(--line);border-radius:var(--r-input);background:var(--surface);padding:var(--s3) var(--s4)}
+input:focus,textarea:focus{border-color:var(--teal);outline:none}
+a{color:inherit}
+:focus-visible{outline:4px solid var(--focus);outline-offset:3px}
+svg{flex:none}
+.ic{width:1.3em;height:1.3em;fill:none;stroke:currentColor;stroke-width:2.25;stroke-linecap:round;stroke-linejoin:round}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+[hidden]{display:none!important}
+.surface{background:var(--surface);border-radius:var(--r-card);box-shadow:var(--shadow-1)}
+
+/* badges: engine / mode */
+.badge{display:inline-flex;align-items:center;gap:6px;font-size:15px;font-weight:700;padding:6px 12px;border-radius:var(--r-pill);background:var(--surface);color:var(--muted);box-shadow:var(--shadow-1);letter-spacing:.01em}
+.badge::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--ok)}
+.badge.local::before{background:var(--unsure-line)}
+.badge.demo{background:repeating-linear-gradient(-45deg,#ffd400 0 10px,#111 10px 20px);padding:3px;box-shadow:none}
+.badge.demo::before{display:none}
+.badge.demo span{display:block;background:#ffd400;color:#111;padding:4px 10px;border-radius:var(--r-pill);font-weight:900}
+
+/* conversation bubbles (shared look; each screen lays them out) */
+.bubble{max-width:min(78%,720px);padding:var(--s4) var(--s5);border-radius:var(--r-bubble);box-shadow:var(--shadow-1);animation:arrive var(--t-msg) var(--ease) both}
+.bubble.patient{background:var(--teal-soft)}
+.bubble.worker{background:var(--blue-soft)}
+.bubble.mine{margin-left:auto}
+.bubble.mine.patient,.bubble.mine.worker{border-bottom-right-radius:var(--r-tail)}
+.bubble.theirs{margin-right:auto;border-bottom-left-radius:var(--r-tail)}
+.bubble .who{font-size:.72em;font-weight:700;letter-spacing:.02em;color:var(--muted);margin-bottom:4px}
+.bubble.patient .who{color:var(--teal)}
+.bubble.worker .who{color:var(--blue)}
+.bubble.unsure{outline:2px dashed var(--unsure-line);outline-offset:3px}
+.warn{display:flex;gap:8px;align-items:flex-start;background:var(--unsure-bg);color:var(--unsure-ink);border-radius:16px;padding:var(--s3) var(--s4);font-weight:600}
+
+@keyframes arrive{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes breathe{0%,100%{transform:scale(1);opacity:.35}50%{transform:scale(1.18);opacity:.12}}
+@keyframes dot{0%,100%{opacity:.25}50%{opacity:1}}
+@keyframes draw{to{stroke-dashoffset:0}}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:1ms!important;animation-iteration-count:1!important;transition:none!important;scroll-behavior:auto!important}
+  .bubble{animation:fade 1ms both}
+}

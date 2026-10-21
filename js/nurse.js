@@ -384,6 +384,12 @@ function empty(key) {
 
 // ---------------------------------------------------------------- request details
 
+/** Address of the speech/translation service (bedside/). Override with ?bedside=https://host */
+function bedsideUrl() {
+  const fromUrl = new URLSearchParams(location.search).get("bedside");
+  return (fromUrl || "http://localhost:8020").replace(/\/+$/, "");
+}
+
 /** Readable details of a request (a node, or null for "toilet"). */
 function detailsElement(row) {
   const d = row.details && typeof row.details === "object" ? row.details : {};
@@ -400,6 +406,13 @@ function detailsElement(row) {
         d.originalText && d.originalText !== d.translatedText
           ? line(t("nurse.speechOriginal", { lang: d.originalLang ?? "?", text: d.originalText }), "nurse-detail-muted")
           : null,
+        // The nurse side of the conversation lives in the speech service
+        el("a", {
+          class: "nurse-speech-open",
+          href: `${bedsideUrl()}/worker?room=${encodeURIComponent(row.room)}`,
+          target: "_blank",
+          rel: "noopener",
+        }, [t("nurse.speechOpen")]),
       ]);
     case "pain":
       return painDetails(d);

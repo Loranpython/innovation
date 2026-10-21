@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bedside demo</title>
+<link rel="stylesheet" href="/static/tokens.css">
+<style>
+body{height:100vh;display:flex;flex-direction:column}
+.wrap{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:var(--s4);padding:var(--s4);min-height:0}
+section{display:flex;flex-direction:column;min-height:0;min-width:0}
+h2{margin:0 0 var(--s2) var(--s2);font-size:17px;font-weight:700;color:var(--muted)}
+iframe{flex:1;width:100%;border:0;border-radius:var(--r-card);box-shadow:var(--shadow-2);background:var(--bg);min-height:0}
+@media (max-width:800px),(orientation:portrait){
+  body{height:auto}.wrap{grid-template-columns:1fr}iframe{height:85vh;flex:none}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <section><h2>Patient &middot; /</h2><iframe title="Patient" src="/?lang=no" allow="microphone"></iframe></section>
+  <section><h2>Healthcare worker &middot; /worker</h2><iframe title="Worker" src="/worker" allow="microphone"></iframe></section>
+</div>
+</body>
+</html>
